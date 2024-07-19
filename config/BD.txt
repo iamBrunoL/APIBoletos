@@ -1,0 +1,155 @@
+-- Crear la base de datos
+CREATE DATABASE IF NOT EXISTS blao5xqfq9hfx2xk7rgf;
+
+-- Usar la base de datos
+USE blao5xqfq9hfx2xk7rgf;
+
+-- Crear tabla de Usuarios
+CREATE TABLE IF NOT EXISTS usuarios (
+    idUsuario INT AUTO_INCREMENT PRIMARY KEY,
+    nombreUsuario VARCHAR(100) NOT NULL,
+    apellidoUsuario VARCHAR(100) NOT NULL,
+    edadUsuario INT NOT NULL,
+    correoUsuario VARCHAR(100) NOT NULL UNIQUE,
+    telefonoUsuario VARCHAR(20) NOT NULL,
+    contrasenaUsuario VARCHAR(255) NOT NULL,
+    tipoUsuario ENUM('cliente', 'admin', 'otro') NOT NULL
+);
+
+-- Crear tabla de Horarios
+CREATE TABLE IF NOT EXISTS horarios (
+    idHorario INT AUTO_INCREMENT PRIMARY KEY,
+    horaProgramada TIME NOT NULL,
+    turno ENUM('mañana', 'tarde', 'noche') NOT NULL
+);
+
+-- Crear tabla de Salas
+CREATE TABLE IF NOT EXISTS salas (
+    idSala INT AUTO_INCREMENT PRIMARY KEY,
+    nombreSala VARCHAR(100) NOT NULL,
+    cantidadAsientos INT NOT NULL
+);
+
+-- Crear tabla de Películas
+CREATE TABLE IF NOT EXISTS peliculas (
+    idPelicula INT AUTO_INCREMENT PRIMARY KEY,
+    nombrePelicula VARCHAR(255) NOT NULL,
+    directorPelicula VARCHAR(255) NOT NULL,
+    duracionPelicula INT NOT NULL,
+    actoresPelicula TEXT NOT NULL,
+    clasificacionPelicula VARCHAR(50) NOT NULL,
+    idHorario INT NOT NULL,
+    FOREIGN KEY (idHorario) REFERENCES horarios(idHorario)
+);
+
+-- Crear tabla de Asientos
+CREATE TABLE IF NOT EXISTS asientos (
+    idAsiento INT AUTO_INCREMENT PRIMARY KEY,
+    filaAsiento VARCHAR(10) NOT NULL,
+    idSalaAsiento INT NOT NULL,
+    estadoAsiento ENUM('disponible', 'ocupado') NOT NULL,
+    FOREIGN KEY (idSalaAsiento) REFERENCES salas(idSala)
+);
+
+-- Crear tabla de Boletos
+CREATE TABLE IF NOT EXISTS boletos (
+    idBoleto INT AUTO_INCREMENT PRIMARY KEY,
+    idUsuario INT NOT NULL,
+    idPelicula INT NOT NULL,
+    idHorario INT NOT NULL,
+    idSala INT NOT NULL,
+    idAsientoReservado INT NOT NULL,
+    fechaReserva DATETIME NOT NULL,
+    fechaExpiracion DATETIME NOT NULL,
+    FOREIGN KEY (idUsuario) REFERENCES usuarios(idUsuario),
+    FOREIGN KEY (idPelicula) REFERENCES peliculas(idPelicula),
+    FOREIGN KEY (idHorario) REFERENCES horarios(idHorario),
+    FOREIGN KEY (idSala) REFERENCES salas(idSala),
+    FOREIGN KEY (idAsientoReservado) REFERENCES asientos(idAsiento)
+);
+
+-- Crear tabla de Logs
+CREATE TABLE IF NOT EXISTS logs (
+    idLog INT AUTO_INCREMENT PRIMARY KEY,
+    usuario VARCHAR(100) NOT NULL,
+    accion TEXT NOT NULL,
+    fechaHora DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+
+-- Insertar usuarios
+INSERT INTO usuarios (nombreUsuario, apellidoUsuario, edadUsuario, correoUsuario, telefonoUsuario, contrasenaUsuario, tipoUsuario)
+VALUES 
+    ('John', 'Doe', 30, 'john.doe@email.com', '1234567890', 'password123', 'cliente'),
+    ('Jane', 'Smith', 25, 'jane.smith@email.com', '9876543210', 'securepassword', 'admin'),
+    ('Michael', 'Lee', 42, 'michael.lee@email.com', '0123456789', 'secret123', 'otro');
+
+-- Insertar horarios
+INSERT INTO horarios (horaProgramada, turno)
+VALUES 
+    ('10:00:00', 'mañana'),
+    ('15:00:00', 'tarde'),
+    ('19:00:00', 'noche');
+
+-- Insertar salas
+INSERT INTO salas (nombreSala, cantidadAsientos)
+VALUES 
+    ('Sala 1', 100),
+    ('Sala 2', 80),
+    ('Sala 3', 50);
+
+-- Insertar películas
+INSERT INTO peliculas (nombrePelicula, directorPelicula, duracionPelicula, actoresPelicula, clasificacionPelicula, idHorario)
+VALUES 
+    ('The Godfather', 'Francis Ford Coppola', 175, 'Marlon Brando, Al Pacino, James Caan', 'Crimen', 1),
+    ('The Shawshank Redemption', 'Frank Darabont', 142, 'Tim Robbins, Morgan Freeman', 'Drama', 2),
+    ('The Lord of the Rings: The Fellowship of the Ring', 'Peter Jackson', 201, 'Elijah Wood, Ian McKellen, Viggo Mortensen', 'Fantasía', 3);
+
+-- Insertar asientos
+INSERT INTO asientos (filaAsiento, idSalaAsiento, estadoAsiento)
+VALUES 
+    ('A', 1, 'disponible'),
+    ('B', 2, 'disponible'),
+    ('C', 3, 'disponible');
+
+-- Insertar boletos con referencia a los asientos
+INSERT INTO boletos (idUsuario, idPelicula, idHorario, idSala, idAsientoReservado, fechaReserva, fechaExpiracion)
+VALUES 
+    (1, 1, 1, 1, 1, NOW(), DATE_ADD(NOW(), INTERVAL 1 DAY)),  -- Asiento 1 en Sala 1
+    (2, 2, 2, 2, 2, NOW(), DATE_ADD(NOW(), INTERVAL 1 DAY)),  -- Asiento 2 en Sala 2
+    (3, 3, 3, 3, 3, NOW(), DATE_ADD(NOW(), INTERVAL 1 DAY));  -- Asiento 3 en Sala 3
+
+-- Crear vista simplificada de usuarios
+CREATE VIEW vista_usuarios_simplificada AS
+SELECT idUsuario, nombreUsuario, apellidoUsuario, correoUsuario, tipoUsuario
+FROM usuarios;
+
+-- Crear vista de detalles de películas
+CREATE VIEW vista_peliculas_detalles AS
+SELECT p.idPelicula, p.nombrePelicula, p.directorPelicula, p.duracionPelicula, 
+       p.actoresPelicula, p.clasificacionPelicula, h.horaProgramada, h.turno
+FROM peliculas p
+JOIN horarios h ON p.idHorario = h.idHorario;
+
+-- Crear vista completa de boletos
+CREATE VIEW vista_boletos_completa AS
+SELECT b.idBoleto, u.nombreUsuario, u.apellidoUsuario, p.nombrePelicula, 
+       h.horaProgramada, h.turno, s.nombreSala, b.idAsientoReservado, 
+       b.fechaReserva, b.fechaExpiracion
+FROM boletos b
+JOIN usuarios u ON b.idUsuario = u.idUsuario
+JOIN peliculas p ON b.idPelicula = p.idPelicula
+JOIN horarios h ON b.idHorario = h.idHorario
+JOIN salas s ON b.idSala = s.idSala;
+
+-- Crear vista de registros de actividad
+CREATE VIEW vista_registros_actividad AS
+SELECT idLog, usuario, accion, fechaHora
+FROM logs;
+
+-- Consultar vistas
+SELECT * FROM vista_usuarios_simplificada;
+SELECT * FROM vista_peliculas_detalles;
+SELECT * FROM vista_boletos_completa;
+SELECT * FROM vista_registros_actividad;
+
