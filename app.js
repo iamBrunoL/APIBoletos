@@ -8,6 +8,7 @@ const salaRoutes = require('./routes/salaRoutes');
 const asientoRoutes = require('./routes/asientoRoutes');
 const boletoRoutes = require('./routes/boletoRoutes');
 const pagoRoutes = require('./routes/pagoRoutes');
+require('dotenv').config(); // Cargar variables de entorno
 
 const app = express();
 app.use(express.json());
