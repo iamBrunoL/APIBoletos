@@ -1,24 +1,16 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
-const Usuario = require('./Usuario');
 const Pelicula = require('./Pelicula');
 const Horario = require('./Horario');
 const Sala = require('./Sala');
 const Asiento = require('./Asiento');
+const Pago = require('./Pago');
 
 const Boleto = sequelize.define('Boleto', {
   idBoleto: {
     type: DataTypes.INTEGER,
     autoIncrement: true,
     primaryKey: true
-  },
-  idUsuario: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: Usuario,
-      key: 'idUsuario'
-    }
   },
   idPelicula: {
     type: DataTypes.INTEGER,
@@ -34,6 +26,14 @@ const Boleto = sequelize.define('Boleto', {
     references: {
       model: Horario,
       key: 'idHorario'
+    }
+  },
+  idPago: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: Pago,
+      key: 'idCompra'
     }
   },
   idSala: {
