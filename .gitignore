@@ -17,6 +17,6 @@
 target/
 
 # frontend code
-node_modules/
+node_modules
 dist/
 .svelte-kit/
