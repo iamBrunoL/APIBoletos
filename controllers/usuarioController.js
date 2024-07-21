@@ -1,14 +1,16 @@
 const Usuario = require('../models/Usuario');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-
 const { blacklistToken } = require('../middleware/blacklist');
 
+// Crear un nuevo usuario
 exports.createUsuario = async (req, res) => {
     try {
+        // Encriptar la contraseña
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(req.body.contrasenaUsuario, salt);
 
+        // Crear el usuario con la contraseña encriptada
         const usuario = await Usuario.create({
             ...req.body,
             contrasenaUsuario: hashedPassword
@@ -19,6 +21,7 @@ exports.createUsuario = async (req, res) => {
     }
 };
 
+// Obtener todos los usuarios
 exports.getAllUsuarios = async (req, res) => {
     try {
         const usuarios = await Usuario.findAll();
@@ -28,6 +31,7 @@ exports.getAllUsuarios = async (req, res) => {
     }
 };
 
+// Obtener un usuario por ID
 exports.getUsuarioById = async (req, res) => {
     try {
         const usuario = await Usuario.findByPk(req.params.id);
@@ -41,19 +45,29 @@ exports.getUsuarioById = async (req, res) => {
     }
 };
 
+// Actualizar un usuario
 exports.updateUsuario = async (req, res) => {
     try {
-        await Usuario.update(req.body, { where: { idUsuario: req.params.id } });
-        res.json({ message: 'Usuario actualizado' });
+        const [updated] = await Usuario.update(req.body, { where: { idUsuario: req.params.id } });
+        if (updated) {
+            res.json({ message: 'Usuario actualizado' });
+        } else {
+            res.status(404).json({ message: 'Usuario no encontrado' });
+        }
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 };
 
+// Eliminar un usuario
 exports.deleteUsuario = async (req, res) => {
     try {
-        await Usuario.destroy({ where: { idUsuario: req.params.id } });
-        res.json({ message: 'Usuario eliminado' });
+        const deleted = await Usuario.destroy({ where: { idUsuario: req.params.id } });
+        if (deleted) {
+            res.json({ message: 'Usuario eliminado' });
+        } else {
+            res.status(404).json({ message: 'Usuario no encontrado' });
+        }
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -68,17 +82,13 @@ exports.loginUsuario = async (req, res) => {
             return res.status(404).json({ message: 'Usuario no encontrado' });
         }
 
-        console.log('Password from DB:', usuario.contrasenaUsuario);
-
         const isMatch = await bcrypt.compare(contrasenaUsuario, usuario.contrasenaUsuario);
-
-        console.log('Password Match:', isMatch);
 
         if (!isMatch) {
             return res.status(400).json({ message: 'Contraseña incorrecta' });
         }
 
-        const payload = { id: usuario.idUsuario, tipo: usuario.tipoUsuario };
+        const payload = { id: usuario.idUsuario, tipo: usuario.tipoUsuario }; // Asegúrate de que 'tipo' esté presente
         const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
 
         res.json({ token });
@@ -86,7 +96,7 @@ exports.loginUsuario = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
-
+// Cerrar sesión
 exports.logoutUsuario = (req, res) => {
     const token = req.header('Authorization');
 
