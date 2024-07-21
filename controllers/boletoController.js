@@ -1,13 +1,76 @@
+const Pago = require('../models/Pago');
 const Boleto = require('../models/Boleto');
+const Asiento = require('../models/Asiento');
+const Usuario = require('../models/Usuario');
+const Pelicula = require('../models/Pelicula');
+const jwt = require('jsonwebtoken');
 
 exports.createBoleto = async (req, res) => {
+    const { idPelicula, idSala, idAsientoReservado, fechaReserva, metodoPago } = req.body;
+    const token = req.header('Authorization').replace('Bearer ', '');
+    const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
+
     try {
-        const boleto = await Boleto.create(req.body);
+        // Obtener el idHorario desde la tabla de Peliculas
+        const pelicula = await Pelicula.findOne({
+            where: {
+                idPelicula
+            }
+        });
+
+        if (!pelicula) {
+            return res.status(400).json({ message: 'Película no encontrada' });
+        }
+
+        const idHorario = pelicula.idHorario;
+
+        // Verificar que el asiento está disponible en la sala correcta
+        const asiento = await Asiento.findOne({
+            where: {
+                idAsiento: idAsientoReservado,
+                idSalaAsiento: idSala,
+                estadoAsiento: 'disponible'
+            }
+        });
+
+        if (!asiento) {
+            return res.status(400).json({ message: 'Asiento no disponible' });
+        }
+
+        // Obtener el usuario
+        const usuario = await Usuario.findByPk(decodedToken.id);
+
+        // Crear el registro de pago
+        const pago = await Pago.create({
+            idUsuario: usuario.idUsuario,
+            cantidadPago: 150,
+            metodoPago: metodoPago
+        });
+
+        // Calcular la fecha de expiración
+        const fechaExpiracion = new Date(fechaReserva);
+        fechaExpiracion.setDate(fechaExpiracion.getDate() + 2);
+
+        // Crear el boleto
+        const boleto = await Boleto.create({
+            idPelicula,
+            idHorario,
+            idSala,
+            idPago: pago.idCompra,
+            idAsientoReservado,
+            fechaReserva,
+            fechaExpiracion
+        });
+
+        // Actualizar el estado del asiento
+        await Asiento.update({ estadoAsiento: 'ocupado' }, { where: { idAsiento: idAsientoReservado } });
+
         res.json(boleto);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 };
+
 
 exports.getAllBoletos = async (req, res) => {
     try {

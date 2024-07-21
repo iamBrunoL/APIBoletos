@@ -2,12 +2,13 @@ const express = require('express');
 const router = express.Router();
 const salaController = require('../controllers/salaController');
 const verifyToken = require('../middleware/auth');
+const checkRole = require('../middleware/roleMiddleware');
 
 // Definir rutas y sus callbacks
-router.post('/', verifyToken, salaController.createSala);
-router.get('/', verifyToken, salaController.getAllSalas);
-router.get('/:id', verifyToken, salaController.getSalaById);
-router.put('/:id', verifyToken, salaController.updateSala);
-router.delete('/:id', verifyToken, salaController.deleteSala);
+router.post('/', verifyToken, checkRole(['admin']), salaController.createSala);
+router.get('/', verifyToken, checkRole(['admin']), salaController.getAllSalas);
+router.get('/:id', verifyToken, checkRole(['admin']), salaController.getSalaById);
+router.put('/:id', verifyToken, checkRole(['admin']), salaController.updateSala);
+router.delete('/:id', verifyToken, checkRole(['admin']), salaController.deleteSala);
 
 module.exports = router;
