@@ -6,7 +6,7 @@ const Pelicula = require('../models/Pelicula');
 const jwt = require('jsonwebtoken');
 
 exports.createBoleto = async (req, res) => {
-    const { idPelicula, idSala, idAsientoReservado, fechaReserva, metodoPago } = req.body;
+    const { idPelicula, idSala, numeroAsientoReservado, fechaReserva, metodoPago } = req.body;
     const token = req.header('Authorization').replace('Bearer ', '');
     const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
 
@@ -27,14 +27,14 @@ exports.createBoleto = async (req, res) => {
         // Verificar que el asiento está disponible en la sala correcta
         const asiento = await Asiento.findOne({
             where: {
-                idAsiento: idAsientoReservado,
+                numeroAsiento: numeroAsientoReservado,
                 idSalaAsiento: idSala,
                 estadoAsiento: 'disponible'
             }
         });
 
         if (!asiento) {
-            return res.status(400).json({ message: 'Asiento no disponible' });
+            return res.status(400).json({ message: 'Asiento no disponible o no existe' });
         }
 
         // Obtener el usuario
@@ -57,19 +57,20 @@ exports.createBoleto = async (req, res) => {
             idHorario,
             idSala,
             idPago: pago.idCompra,
-            idAsientoReservado,
+            idAsientoReservado: asiento.idAsiento, // Usar el id del asiento encontrado
             fechaReserva,
             fechaExpiracion
         });
 
         // Actualizar el estado del asiento
-        await Asiento.update({ estadoAsiento: 'ocupado' }, { where: { idAsiento: idAsientoReservado } });
+        await Asiento.update({ estadoAsiento: 'ocupado' }, { where: { idAsiento: asiento.idAsiento } });
 
         res.json(boleto);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 };
+
 
 
 exports.getAllBoletos = async (req, res) => {

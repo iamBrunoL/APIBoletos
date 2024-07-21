@@ -121,26 +121,26 @@ VALUES
 
 INSERT INTO asientos (filaAsiento, idSalaAsiento, numeroAsiento, estadoAsiento)
 VALUES
-  ('A', 1, 1, 'disponible'),
-  ('A', 1, 2, 'disponible'),
-  ('A', 1, 3, 'disponible'),
-  ('B', 1, 4, 'disponible'),
-  ('B', 1, 5, 'disponible'),
-  ('C', 2, 6, 'disponible'),
-  ('C', 2, 7, 'disponible'),
-  ('C', 2, 8, 'disponible'),
-  ('D', 2, 9, 'disponible'),
-  ('D', 2, 10, 'disponible'),
-  ('E', 3, 11, 'disponible'),
-  ('E', 3, 12, 'disponible'),
-  ('E', 3, 13, 'disponible'),
-  ('F', 3, 14, 'disponible'),
-  ('F', 3, 15, 'disponible'),
-  ('G', 4, 16, 'disponible'),
-  ('G', 4, 17, 'disponible'),
-  ('G', 4, 18, 'disponible'),
-  ('H', 4, 19, 'disponible'),
-  ('H', 4, 20, 'disponible');
+('A', 1, 1, 'disponible'),
+('A', 1, 2, 'ocupado'),
+('A', 1, 3, 'disponible'),
+('A', 1, 4, 'ocupado'),
+('A', 1, 5, 'disponible'),
+('A', 1, 6, 'ocupado'),
+
+('B', 2, 1, 'disponible'),
+('B', 2, 2, 'ocupado'),
+('B', 2, 3, 'disponible'),
+('B', 2, 4, 'ocupado'),
+('B', 2, 5, 'disponible'),
+('B', 2, 6, 'ocupado'),
+
+('C', 3, 1, 'disponible'),
+('C', 3, 2, 'ocupado'),
+('C', 3, 3, 'disponible'),
+('C', 3, 4, 'ocupado'),
+('C', 3, 5, 'disponible'),
+('C', 3, 6, 'ocupado');
 
 
 INSERT INTO boletos (idPelicula, idHorario, idSala, idPago, idAsientoReservado, fechaReserva, fechaExpiracion)
