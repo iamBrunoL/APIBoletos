@@ -11,7 +11,7 @@ exports.createBoleto = async (req, res) => {
     const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
 
     try {
-        // Obtener el idHorario desde la tabla de Peliculas
+        // Obtener la película y su precio
         const pelicula = await Pelicula.findOne({
             where: {
                 idPelicula
@@ -23,6 +23,7 @@ exports.createBoleto = async (req, res) => {
         }
 
         const idHorario = pelicula.idHorario;
+        const precioBoleto = pelicula.precioBoleto;
 
         // Verificar que el asiento está disponible en la sala correcta
         const asiento = await Asiento.findOne({
@@ -40,10 +41,10 @@ exports.createBoleto = async (req, res) => {
         // Obtener el usuario
         const usuario = await Usuario.findByPk(decodedToken.id);
 
-        // Crear el registro de pago
+        // Crear el registro de pago con el precio de la película
         const pago = await Pago.create({
             idUsuario: usuario.idUsuario,
-            cantidadPago: 150,
+            cantidadPago: precioBoleto, // Utilizar el precio del boleto de la película
             metodoPago: metodoPago
         });
 
@@ -65,13 +66,23 @@ exports.createBoleto = async (req, res) => {
         // Actualizar el estado del asiento
         await Asiento.update({ estadoAsiento: 'ocupado' }, { where: { idAsiento: asiento.idAsiento } });
 
-        res.json(boleto);
+        // Responder con numeroAsientoReservado en lugar de idAsientoReservado
+        const response = {
+            idBoleto: boleto.idBoleto,
+            idPelicula: boleto.idPelicula,
+            idHorario: boleto.idHorario,
+            idSala: boleto.idSala,
+            idPago: boleto.idPago,
+            numeroAsientoReservado: numeroAsientoReservado,
+            fechaReserva: boleto.fechaReserva,
+            fechaExpiracion: boleto.fechaExpiracion
+        };
+
+        res.json(response);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 };
-
-
 
 exports.getAllBoletos = async (req, res) => {
     try {

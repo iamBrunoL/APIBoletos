@@ -35,7 +35,11 @@ const Pelicula = sequelize.define('Pelicula', {
       model: Horario,
       key: 'idHorario'
     }
-  }
+  },
+  precioBoleto: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
 }, {
   tableName: 'peliculas',
   timestamps: false
