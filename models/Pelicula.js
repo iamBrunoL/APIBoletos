@@ -39,10 +39,12 @@ const Pelicula = sequelize.define('Pelicula', {
   precioBoleto: {
     type: DataTypes.INTEGER,
     allowNull: false
-  },
+  }
 }, {
   tableName: 'peliculas',
   timestamps: false
 });
+
+Pelicula.belongsTo(Horario, { foreignKey: 'idHorario' });
 
 module.exports = Pelicula;

@@ -3,6 +3,8 @@ const Boleto = require('../models/Boleto');
 const Asiento = require('../models/Asiento');
 const Usuario = require('../models/Usuario');
 const Pelicula = require('../models/Pelicula');
+const Horario = require('../models/Horario');
+const Sala = require('../models/Sala');
 const jwt = require('jsonwebtoken');
 
 exports.createBoleto = async (req, res) => {
@@ -24,6 +26,20 @@ exports.createBoleto = async (req, res) => {
 
         const idHorario = pelicula.idHorario;
         const precioBoleto = pelicula.precioBoleto;
+        const nombrePelicula = pelicula.nombrePelicula;
+
+        // Obtener la hora programada del horario
+        const horario = await Horario.findOne({
+            where: {
+                idHorario
+            }
+        });
+
+        if (!horario) {
+            return res.status(400).json({ message: 'Horario no encontrado' });
+        }
+
+        const horaProgramada = horario.horaProgramada;
 
         // Verificar que el asiento está disponible en la sala correcta
         const asiento = await Asiento.findOne({
@@ -38,8 +54,22 @@ exports.createBoleto = async (req, res) => {
             return res.status(400).json({ message: 'Asiento no disponible o no existe' });
         }
 
+        // Obtener la sala
+        const sala = await Sala.findOne({
+            where: {
+                idSala
+            }
+        });
+
+        if (!sala) {
+            return res.status(400).json({ message: 'Sala no encontrada' });
+        }
+
+        const nombreSala = sala.nombreSala;
+
         // Obtener el usuario
         const usuario = await Usuario.findByPk(decodedToken.id);
+        const nombreUsuario = usuario.nombreUsuario; // Obtener el nombre del usuario
 
         // Crear el registro de pago con el precio de la película
         const pago = await Pago.create({
@@ -66,16 +96,17 @@ exports.createBoleto = async (req, res) => {
         // Actualizar el estado del asiento
         await Asiento.update({ estadoAsiento: 'ocupado' }, { where: { idAsiento: asiento.idAsiento } });
 
-        // Responder con numeroAsientoReservado en lugar de idAsientoReservado
+        // Responder con los nombres y no con los IDs
         const response = {
             idBoleto: boleto.idBoleto,
-            idPelicula: boleto.idPelicula,
-            idHorario: boleto.idHorario,
-            idSala: boleto.idSala,
             idPago: boleto.idPago,
+            nombreUsuario: nombreUsuario,
+            nombrePelicula: nombrePelicula,
+            horaProgramada: horaProgramada,
+            nombreSala: nombreSala,
             numeroAsientoReservado: numeroAsientoReservado,
             fechaReserva: boleto.fechaReserva,
-            fechaExpiracion: boleto.fechaExpiracion
+            fechaExpiracion: boleto.fechaExpiracion // Incluir el nombre del usuario
         };
 
         res.json(response);
