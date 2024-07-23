@@ -14,6 +14,10 @@ const Horario = sequelize.define('Horario', {
   turno: {
     type: DataTypes.ENUM('mañana', 'tarde', 'noche'),
     allowNull: false
+  },
+  fechaDeEmision: {
+    type: DataTypes.DATE,
+    allowNull: false
   }
 }, {
   tableName: 'horarios',

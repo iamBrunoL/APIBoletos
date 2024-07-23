@@ -8,7 +8,7 @@ const Sala = require('../models/Sala');
 const jwt = require('jsonwebtoken');
 
 exports.createBoleto = async (req, res) => {
-    const { idPelicula, idSala, numeroAsientoReservado, fechaReserva, metodoPago } = req.body;
+    const { idPelicula, idSala, numeroAsientoReservado, metodoPago } = req.body;
     const token = req.header('Authorization').replace('Bearer ', '');
     const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
 
@@ -74,11 +74,12 @@ exports.createBoleto = async (req, res) => {
         // Crear el registro de pago con el precio de la película
         const pago = await Pago.create({
             idUsuario: usuario.idUsuario,
-            cantidadPago: precioBoleto, // Utilizar el precio del boleto de la película
+            cantidadPago: precioBoleto,
             metodoPago: metodoPago
         });
 
         // Calcular la fecha de expiración
+        const fechaReserva = new Date();
         const fechaExpiracion = new Date(fechaReserva);
         fechaExpiracion.setDate(fechaExpiracion.getDate() + 2);
 
@@ -104,9 +105,11 @@ exports.createBoleto = async (req, res) => {
             nombrePelicula: nombrePelicula,
             horaProgramada: horaProgramada,
             nombreSala: nombreSala,
+            filaAsiento: asiento.filaAsiento,
             numeroAsientoReservado: numeroAsientoReservado,
+            precioBoleto: precioBoleto,
             fechaReserva: boleto.fechaReserva,
-            fechaExpiracion: boleto.fechaExpiracion // Incluir el nombre del usuario
+            fechaExpiracion: boleto.fechaExpiracion
         };
 
         res.json(response);
@@ -114,6 +117,7 @@ exports.createBoleto = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
 
 exports.getAllBoletos = async (req, res) => {
     try {

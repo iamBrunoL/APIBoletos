@@ -55,10 +55,6 @@ const Boleto = sequelize.define('Boleto', {
   fechaReserva: {
     type: DataTypes.DATE,
     allowNull: false
-  },
-  fechaExpiracion: {
-    type: DataTypes.DATE,
-    allowNull: false
   }
 }, {
   tableName: 'boletos',
