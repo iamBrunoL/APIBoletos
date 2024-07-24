@@ -14,6 +14,11 @@ const app = express();
 app.use(express.json());
 app.use(morgan('dev'));
 
+// Ruta para la raíz del servidor
+app.get('/', (req, res) => {
+    res.send('Propiedad de Cine Fox');
+});
+
 // Sincronizar modelos con la base de datos
 sequelize.sync();
 
@@ -26,7 +31,12 @@ app.use('/asientos', asientoRoutes);
 app.use('/boletos', boletoRoutes);
 app.use('/pagos', pagoRoutes);
 
+// Middleware para manejar rutas no definidas
+app.use((req, res) => {
+    res.status(404).send('Upss!!!, la ruta que estás buscando no existe.');
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`Servidor corriendo en el puerto ${PORT}`);
+    console.log(`Servidor de la API de Cine Fox corriendo en el puerto ${PORT}`);
 });
