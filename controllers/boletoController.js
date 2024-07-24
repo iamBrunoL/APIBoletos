@@ -40,6 +40,7 @@ exports.createBoleto = async (req, res) => {
         }
 
         const horaProgramada = horario.horaProgramada;
+        const fechaDeEmision = horario.fechaDeEmision;
 
         // Verificar que el asiento está disponible en la sala correcta
         const asiento = await Asiento.findOne({
@@ -69,7 +70,7 @@ exports.createBoleto = async (req, res) => {
 
         // Obtener el usuario
         const usuario = await Usuario.findByPk(decodedToken.id);
-        const nombreUsuario = usuario.nombreUsuario; // Obtener el nombre del usuario
+        const nombreUsuario = usuario.nombreUsuario;
 
         // Crear el registro de pago con el precio de la película
         const pago = await Pago.create({
@@ -78,10 +79,8 @@ exports.createBoleto = async (req, res) => {
             metodoPago: metodoPago
         });
 
-        // Calcular la fecha de expiración
+        // Obtener la fecha actual para fechaReserva
         const fechaReserva = new Date();
-        const fechaExpiracion = new Date(fechaReserva);
-        fechaExpiracion.setDate(fechaExpiracion.getDate() + 2);
 
         // Crear el boleto
         const boleto = await Boleto.create({
@@ -89,7 +88,7 @@ exports.createBoleto = async (req, res) => {
             idHorario,
             idSala,
             idPago: pago.idCompra,
-            idAsientoReservado: asiento.idAsiento, // Usar el id del asiento encontrado
+            idAsientoReservado: asiento.idAsiento,
             fechaReserva
         });
 
@@ -104,11 +103,9 @@ exports.createBoleto = async (req, res) => {
             nombrePelicula: nombrePelicula,
             horaProgramada: horaProgramada,
             nombreSala: nombreSala,
-            filaAsiento: asiento.filaAsiento,
             numeroAsientoReservado: numeroAsientoReservado,
-            precioBoleto: precioBoleto,
             fechaReserva: boleto.fechaReserva,
-            fechaExpiracion: fechaExpiracion
+            fechaDeEmision: fechaDeEmision // Incluir la fecha de emisión
         };
 
         res.json(response);
@@ -116,6 +113,7 @@ exports.createBoleto = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
 
 exports.getAllBoletos = async (req, res) => {
     try {
