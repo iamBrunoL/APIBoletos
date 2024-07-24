@@ -3,10 +3,9 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { blacklistToken } = require('../middleware/blacklist');
 
-// Crear un nuevo usuario
 exports.createUsuario = async (req, res) => {
     try {
-        const { contrasenaUsuario, ...rest } = req.body;
+        const { contrasenaUsuario, tipoUsuario, ...rest } = req.body;
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(contrasenaUsuario, salt);
 
@@ -14,7 +13,11 @@ exports.createUsuario = async (req, res) => {
             ...rest,
             contrasenaUsuario: hashedPassword
         });
-        res.json(usuario);
+
+        // Excluir contrasenaUsuario y tipoUsuario de la respuesta
+        const { contrasenaUsuario: _, tipoUsuario: __, ...usuarioResponse } = usuario.dataValues;
+
+        res.json(usuarioResponse);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -30,14 +33,22 @@ exports.getAllUsuarios = async (req, res) => {
     }
 };
 
-// Obtener un usuario por ID
-exports.getUsuarioById = async (req, res) => {
+// Buscar usuarios por múltiples criterios
+exports.getUsuarios = async (req, res) => {
     try {
-        const usuario = await Usuario.findByPk(req.params.id);
-        if (usuario) {
-            res.json(usuario);
+        const { idUsuario, correoUsuario, tipoUsuario } = req.query;
+
+        const searchCriteria = {};
+        if (idUsuario) searchCriteria.idUsuario = idUsuario;
+        if (correoUsuario) searchCriteria.correoUsuario = correoUsuario;
+        if (tipoUsuario) searchCriteria.tipoUsuario = tipoUsuario;
+
+        const usuarios = await Usuario.findAll({ where: searchCriteria });
+
+        if (usuarios.length > 0) {
+            res.json(usuarios);
         } else {
-            res.status(404).json({ message: 'Usuario no encontrado' });
+            res.status(404).json({ message: 'No se encontraron usuarios con los criterios proporcionados' });
         }
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -47,13 +58,28 @@ exports.getUsuarioById = async (req, res) => {
 // Actualizar un usuario
 exports.updateUsuario = async (req, res) => {
     try {
-        const { contrasenaUsuario, ...rest } = req.body;
+        const { contrasenaUsuario, tipoUsuario, ...rest } = req.body;
+        const { id } = req.params;
+        const { tipo: tipoUsuarioAutenticado } = req.usuario; // El rol del usuario autenticado
+
+        // Verificar si se intenta cambiar el tipo de usuario a admin
+        if (tipoUsuario && tipoUsuario !== 'admin' && tipoUsuarioAutenticado === 'admin') {
+            const adminCount = await Usuario.count({ where: { tipoUsuario: 'admin' } });
+
+            // Verificar si hay más de un administrador en el sistema
+            if (adminCount <= 1) {
+                return res.status(400).json({ message: 'Debe haber al menos un administrador en el sistema.' });
+            }
+        }
+
+        // Actualizar la contraseña si se proporciona
         if (contrasenaUsuario) {
             const salt = await bcrypt.genSalt(10);
             const hashedPassword = await bcrypt.hash(contrasenaUsuario, salt);
             rest.contrasenaUsuario = hashedPassword;
         }
-        const [updated] = await Usuario.update(rest, { where: { idUsuario: req.params.id } });
+
+        const [updated] = await Usuario.update(rest, { where: { idUsuario: id } });
         if (updated) {
             res.json({ message: 'Usuario actualizado' });
         } else {
@@ -67,7 +93,23 @@ exports.updateUsuario = async (req, res) => {
 // Eliminar un usuario
 exports.deleteUsuario = async (req, res) => {
     try {
-        const deleted = await Usuario.destroy({ where: { idUsuario: req.params.id } });
+        const { id } = req.params;
+        const usuarioAEliminar = await Usuario.findByPk(id);
+        
+        if (!usuarioAEliminar) {
+            return res.status(404).json({ message: 'Usuario no encontrado' });
+        }
+
+        if (usuarioAEliminar.tipoUsuario === 'admin') {
+            const adminCount = await Usuario.count({ where: { tipoUsuario: 'admin' } });
+            
+            // Verificar si queda al menos un administrador
+            if (adminCount <= 1) {
+                return res.status(400).json({ message: 'No puedes eliminar el único administrador del sistema.' });
+            }
+        }
+
+        const deleted = await Usuario.destroy({ where: { idUsuario: id } });
         if (deleted) {
             res.json({ message: 'Usuario eliminado' });
         } else {

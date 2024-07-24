@@ -5,10 +5,20 @@ const verifyToken = require('../middleware/auth');
 const checkRole = require('../middleware/roleMiddleware');
 
 // Definir rutas y sus callbacks
+
+// Crear un nuevo asiento
 router.post('/', verifyToken, checkRole(['admin']), asientoController.createAsiento);
+
+// Obtener todos los asientos
 router.get('/', verifyToken, checkRole(['admin']), asientoController.getAllAsientos);
-router.get('/:id', verifyToken, checkRole(['admin']), asientoController.getAsientoById);
-router.put('/:id', verifyToken, checkRole(['admin']), asientoController.updateAsiento);
+
+// Obtener asientos por criterios de búsqueda
+router.get('/search', verifyToken, checkRole(['admin']), asientoController.getAsientos);
+
+// Actualizar asientos por múltiples criterios
+router.put('/', verifyToken, checkRole(['admin']), asientoController.updateAsientos);
+
+// Eliminar un asiento
 router.delete('/:id', verifyToken, checkRole(['admin']), asientoController.deleteAsiento);
 
 module.exports = router;

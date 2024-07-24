@@ -7,7 +7,6 @@ const checkRole = require('../middleware/roleMiddleware');
 // Definir rutas y sus callbacks
 router.post('/', verifyToken, checkRole(['admin']), horarioController.createHorario);
 router.get('/', verifyToken, checkRole(['admin']), horarioController.getAllHorarios);
-router.get('/:id', verifyToken, checkRole(['admin']), horarioController.getHorarioById);
 router.put('/:id', verifyToken, checkRole(['admin']), horarioController.updateHorario);
 router.delete('/:id', verifyToken, checkRole(['admin']), horarioController.deleteHorario);
 

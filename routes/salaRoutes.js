@@ -5,10 +5,20 @@ const verifyToken = require('../middleware/auth');
 const checkRole = require('../middleware/roleMiddleware');
 
 // Definir rutas y sus callbacks
+
+// Crear una nueva sala
 router.post('/', verifyToken, checkRole(['admin']), salaController.createSala);
+
+// Obtener todas las salas
 router.get('/', verifyToken, checkRole(['admin']), salaController.getAllSalas);
-router.get('/:id', verifyToken, checkRole(['admin']), salaController.getSalaById);
-router.put('/:id', verifyToken, checkRole(['admin']), salaController.updateSala);
-router.delete('/:id', verifyToken, checkRole(['admin']), salaController.deleteSala);
+
+// Buscar salas por criterios
+router.get('/search', verifyToken, checkRole(['admin']), salaController.getSalas);
+
+// Actualizar una sala
+router.put('/', verifyToken, checkRole(['admin']), salaController.updateSala);
+
+// Eliminar una sala
+router.delete('/:idSala', verifyToken, checkRole(['admin']), salaController.deleteSala);
 
 module.exports = router;

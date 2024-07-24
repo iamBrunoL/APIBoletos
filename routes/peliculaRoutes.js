@@ -5,12 +5,20 @@ const verifyToken = require('../middleware/auth');
 const checkRole = require('../middleware/roleMiddleware');
 
 // Definir rutas y sus callbacks
+
+// Crear una nueva película
 router.post('/', verifyToken, checkRole(['admin']), peliculaController.createPelicula);
+
+// Obtener todas las películas
 router.get('/', verifyToken, checkRole(['cliente']), peliculaController.getAllPeliculas);
-router.get('/:id', verifyToken, checkRole(['admin']), peliculaController.getPeliculaById);
-router.put('/:id', verifyToken, checkRole(['admin']), peliculaController.updatePelicula);
-router.delete('/:id', verifyToken, checkRole(['admin']), peliculaController.deletePelicula);
 
+// Buscar películas por criterios
+router.get('/search', verifyToken, checkRole(['admin']), peliculaController.getPeliculas);
 
+// Actualizar una película
+router.put('/', verifyToken, checkRole(['admin']), peliculaController.updatePelicula);
+
+// Eliminar una película
+router.delete('/:idPelicula', verifyToken, checkRole(['admin']), peliculaController.deletePelicula);
 
 module.exports = router;

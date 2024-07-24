@@ -10,7 +10,10 @@ router.post('/login', usuarioController.loginUsuario); // Ruta para login no pro
 router.post('/logout', usuarioController.logoutUsuario);
 
 router.get('/', verifyToken, checkRole(['admin']), usuarioController.getAllUsuarios);
-router.get('/:id', verifyToken, checkRole(['admin']), usuarioController.getUsuarioById);
+
+// Nueva ruta para buscar usuarios por criterios
+router.get('/search', verifyToken, checkRole(['admin']), usuarioController.getUsuarios);
+
 router.put('/:id', verifyToken, checkRole(['admin']), usuarioController.updateUsuario);
 router.delete('/:id', verifyToken, checkRole(['admin']), usuarioController.deleteUsuario);
 

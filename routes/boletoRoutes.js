@@ -5,10 +5,20 @@ const verifyToken = require('../middleware/auth');
 const checkRole = require('../middleware/roleMiddleware');
 
 // Definir rutas y sus callbacks
+
+// Crear un nuevo boleto
 router.post('/', verifyToken, checkRole(['cliente']), boletoController.createBoleto);
+
+// Obtener todos los boletos
 router.get('/', verifyToken, checkRole(['admin']), boletoController.getAllBoletos);
-router.get('/:id', verifyToken, checkRole(['admin']), boletoController.getBoletoById);
-router.put('/:id', verifyToken, boletoController.updateBoleto);
-router.delete('/:id', verifyToken, checkRole(['cliente']), boletoController.deleteBoleto);
+
+// Obtener boletos por criterios de búsqueda
+router.get('/search', verifyToken, checkRole(['admin']), boletoController.getBoletos);
+
+// Actualizar boletos por múltiples criterios
+router.put('/', verifyToken, checkRole(['admin']), boletoController.updateBoletos);
+
+// Eliminar un boleto
+router.delete('/:id', verifyToken, checkRole(['admin']), boletoController.deleteBoleto);
 
 module.exports = router;
