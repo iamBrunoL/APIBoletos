@@ -1,8 +1,15 @@
 const Pago = require('../models/Pago');
+const Usuario = require('../models/Usuario');
 
 exports.createPago = async (req, res) => {
     try {
-        const pago = await Pago.create(req.body);
+        const { idUsuario, cantidadPago, metodoPago } = req.body;
+        const usuario = await Usuario.findByPk(idUsuario);
+        if (!usuario) {
+            return res.status(404).json({ message: 'Usuario no encontrado' });
+        }
+
+        const pago = await Pago.create({ idUsuario, cantidadPago, metodoPago });
         res.json(pago);
     } catch (error) {
         res.status(500).json({ error: error.message });

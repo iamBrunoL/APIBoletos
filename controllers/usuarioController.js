@@ -6,13 +6,12 @@ const { blacklistToken } = require('../middleware/blacklist');
 // Crear un nuevo usuario
 exports.createUsuario = async (req, res) => {
     try {
-        // Encriptar la contraseña
+        const { contrasenaUsuario, ...rest } = req.body;
         const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(req.body.contrasenaUsuario, salt);
+        const hashedPassword = await bcrypt.hash(contrasenaUsuario, salt);
 
-        // Crear el usuario con la contraseña encriptada
         const usuario = await Usuario.create({
-            ...req.body,
+            ...rest,
             contrasenaUsuario: hashedPassword
         });
         res.json(usuario);
@@ -48,7 +47,13 @@ exports.getUsuarioById = async (req, res) => {
 // Actualizar un usuario
 exports.updateUsuario = async (req, res) => {
     try {
-        const [updated] = await Usuario.update(req.body, { where: { idUsuario: req.params.id } });
+        const { contrasenaUsuario, ...rest } = req.body;
+        if (contrasenaUsuario) {
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash(contrasenaUsuario, salt);
+            rest.contrasenaUsuario = hashedPassword;
+        }
+        const [updated] = await Usuario.update(rest, { where: { idUsuario: req.params.id } });
         if (updated) {
             res.json({ message: 'Usuario actualizado' });
         } else {
@@ -73,6 +78,7 @@ exports.deleteUsuario = async (req, res) => {
     }
 };
 
+// Iniciar sesión
 exports.loginUsuario = async (req, res) => {
     try {
         const { correoUsuario, contrasenaUsuario } = req.body;
@@ -88,7 +94,7 @@ exports.loginUsuario = async (req, res) => {
             return res.status(400).json({ message: 'Contraseña incorrecta' });
         }
 
-        const payload = { id: usuario.idUsuario, tipo: usuario.tipoUsuario }; // Asegúrate de que 'tipo' esté presente
+        const payload = { id: usuario.idUsuario, tipo: usuario.tipoUsuario };
         const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
 
         res.json({ token });
@@ -96,21 +102,18 @@ exports.loginUsuario = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
 // Cerrar sesión
-exports.logoutUsuario = (req, res) => {
-    const token = req.header('Authorization');
-
-    if (!token) {
-        return res.status(401).json({ message: 'No se proporcionó token' });
-    }
-
+exports.logoutUsuario = async (req, res) => {
     try {
-        const tokenWithoutBearer = token.replace('Bearer ', '');
-        // Agregar el token a la lista negra
-        blacklistToken(tokenWithoutBearer);
-
-        res.json({ message: 'Sesión cerrada exitosamente' });
+        const token = req.headers['authorization'];
+        if (token) {
+            blacklistToken(token);
+            res.json({ message: 'Sesión cerrada correctamente' });
+        } else {
+            res.status(400).json({ message: 'Token no proporcionado' });
+        }
     } catch (error) {
-        res.status(500).json({ message: 'Error al cerrar sesión', error: error.message });
+        res.status(500).json({ error: error.message });
     }
 };

@@ -1,8 +1,15 @@
 const Pelicula = require('../models/Pelicula');
+const Horario = require('../models/Horario');
 
 exports.createPelicula = async (req, res) => {
     try {
-        const pelicula = await Pelicula.create(req.body);
+        const { idHorario, nombrePelicula, directorPelicula, duracionPelicula, actoresPelicula, clasificacionPelicula, precioBoleto } = req.body;
+        const horario = await Horario.findByPk(idHorario);
+        if (!horario) {
+            return res.status(404).json({ message: 'Horario no encontrado' });
+        }
+
+        const pelicula = await Pelicula.create({ idHorario, nombrePelicula, directorPelicula, duracionPelicula, actoresPelicula, clasificacionPelicula, precioBoleto });
         res.json(pelicula);
     } catch (error) {
         res.status(500).json({ error: error.message });

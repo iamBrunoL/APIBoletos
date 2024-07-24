@@ -90,8 +90,7 @@ exports.createBoleto = async (req, res) => {
             idSala,
             idPago: pago.idCompra,
             idAsientoReservado: asiento.idAsiento, // Usar el id del asiento encontrado
-            fechaReserva,
-            fechaExpiracion
+            fechaReserva
         });
 
         // Actualizar el estado del asiento
@@ -109,7 +108,7 @@ exports.createBoleto = async (req, res) => {
             numeroAsientoReservado: numeroAsientoReservado,
             precioBoleto: precioBoleto,
             fechaReserva: boleto.fechaReserva,
-            fechaExpiracion: boleto.fechaExpiracion
+            fechaExpiracion: fechaExpiracion
         };
 
         res.json(response);
@@ -117,7 +116,6 @@ exports.createBoleto = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
-
 
 exports.getAllBoletos = async (req, res) => {
     try {
