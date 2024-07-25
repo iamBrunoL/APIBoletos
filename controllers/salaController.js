@@ -1,10 +1,17 @@
 const Sala = require('../models/Sala');
+const PDFDocument = require('pdfkit');
 
 // Crear una nueva sala
 exports.createSala = async (req, res) => {
+    const { nombreSala, capacidadSala } = req.body;
+
     try {
-        const sala = await Sala.create(req.body);
-        res.json(sala);
+        const sala = await Sala.create({
+            nombreSala,
+            capacidadSala
+        });
+
+        res.status(201).json(sala);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -20,15 +27,13 @@ exports.getAllSalas = async (req, res) => {
     }
 };
 
-// Obtener salas por múltiples criterios
+// Obtener salas por criterios de búsqueda
 exports.getSalas = async (req, res) => {
     try {
-        const { idSala, nombreSala, ubicacionSala } = req.query;
-        
+        const { idSala, nombreSala } = req.query;
         const searchCriteria = {};
         if (idSala) searchCriteria.idSala = idSala;
         if (nombreSala) searchCriteria.nombreSala = nombreSala;
-        if (ubicacionSala) searchCriteria.ubicacionSala = ubicacionSala;
 
         const salas = await Sala.findAll({ where: searchCriteria });
 
@@ -42,10 +47,10 @@ exports.getSalas = async (req, res) => {
     }
 };
 
-// Actualizar una sala
-exports.updateSala = async (req, res) => {
+// Actualizar salas por múltiples criterios
+exports.updateSalas = async (req, res) => {
     try {
-        const { idSala, nombreSala, ubicacionSala, capacidadSala } = req.body;
+        const { idSala, nombreSala, capacidadSala } = req.body;
 
         if (!idSala) {
             return res.status(400).json({ message: 'ID de la sala es requerido para la actualización' });
@@ -53,7 +58,6 @@ exports.updateSala = async (req, res) => {
 
         const updateFields = {};
         if (nombreSala) updateFields.nombreSala = nombreSala;
-        if (ubicacionSala) updateFields.ubicacionSala = ubicacionSala;
         if (capacidadSala) updateFields.capacidadSala = capacidadSala;
 
         const [updated] = await Sala.update(updateFields, { where: { idSala } });
@@ -85,6 +89,33 @@ exports.deleteSala = async (req, res) => {
         await Sala.destroy({ where: { idSala } });
 
         res.json({ message: 'Sala eliminada exitosamente' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Generar reporte en PDF de las salas
+exports.getSalasPDF = async (req, res) => {
+    try {
+        const salas = await Sala.findAll();
+
+        const doc = new PDFDocument();
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'attachment; filename=salas.pdf');
+
+        doc.pipe(res);
+
+        doc.fontSize(20).text('Reporte de Salas', { align: 'center' });
+
+        salas.forEach(sala => {
+            doc.fontSize(12).text(`ID: ${sala.idSala}`);
+            doc.fontSize(12).text(`Nombre: ${sala.nombreSala}`);
+            doc.fontSize(12).text(`Capacidad: ${sala.capacidadSala}`);
+            doc.moveDown();
+        });
+
+        doc.end();
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

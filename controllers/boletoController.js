@@ -6,6 +6,7 @@ const Pelicula = require('../models/Pelicula');
 const Horario = require('../models/Horario');
 const Sala = require('../models/Sala');
 const jwt = require('jsonwebtoken');
+const PDFDocument = require('pdfkit');
 
 exports.createBoleto = async (req, res) => {
     const { idPelicula, idSala, numeroAsientoReservado, metodoPago } = req.body;
@@ -13,7 +14,6 @@ exports.createBoleto = async (req, res) => {
     const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
 
     try {
-        // Obtener la película y su precio
         const pelicula = await Pelicula.findOne({ where: { idPelicula } });
         if (!pelicula) {
             return res.status(400).json({ message: 'Película no encontrada' });
@@ -23,7 +23,6 @@ exports.createBoleto = async (req, res) => {
         const precioBoleto = pelicula.precioBoleto;
         const nombrePelicula = pelicula.nombrePelicula;
 
-        // Obtener la hora programada del horario
         const horario = await Horario.findOne({ where: { idHorario } });
         if (!horario) {
             return res.status(400).json({ message: 'Horario no encontrado' });
@@ -32,7 +31,6 @@ exports.createBoleto = async (req, res) => {
         const horaProgramada = horario.horaProgramada;
         const fechaDeEmision = horario.fechaDeEmision;
 
-        // Verificar que el asiento está disponible en la sala correcta
         const asiento = await Asiento.findOne({
             where: {
                 numeroAsiento: numeroAsientoReservado,
@@ -44,7 +42,6 @@ exports.createBoleto = async (req, res) => {
             return res.status(400).json({ message: 'Asiento no disponible o no existe' });
         }
 
-        // Obtener la sala
         const sala = await Sala.findOne({ where: { idSala } });
         if (!sala) {
             return res.status(400).json({ message: 'Sala no encontrada' });
@@ -52,21 +49,17 @@ exports.createBoleto = async (req, res) => {
 
         const nombreSala = sala.nombreSala;
 
-        // Obtener el usuario
         const usuario = await Usuario.findByPk(decodedToken.id);
         const nombreUsuario = usuario.nombreUsuario;
 
-        // Crear el registro de pago con el precio de la película
         const pago = await Pago.create({
             idUsuario: usuario.idUsuario,
             cantidadPago: precioBoleto,
             metodoPago: metodoPago
         });
 
-        // Obtener la fecha actual para fechaReserva
         const fechaReserva = new Date();
 
-        // Crear el boleto
         const boleto = await Boleto.create({
             idPelicula,
             idHorario,
@@ -76,10 +69,8 @@ exports.createBoleto = async (req, res) => {
             fechaReserva
         });
 
-        // Actualizar el estado del asiento
         await Asiento.update({ estadoAsiento: 'ocupado' }, { where: { idAsiento: asiento.idAsiento } });
 
-        // Responder con los nombres y no con los IDs
         const response = {
             idBoleto: boleto.idBoleto,
             idPago: boleto.idPago,
@@ -89,7 +80,7 @@ exports.createBoleto = async (req, res) => {
             nombreSala: nombreSala,
             numeroAsientoReservado: numeroAsientoReservado,
             fechaReserva: boleto.fechaReserva,
-            fechaDeEmision: fechaDeEmision // Incluir la fecha de emisión
+            fechaDeEmision: fechaDeEmision
         };
 
         res.json(response);
@@ -98,7 +89,6 @@ exports.createBoleto = async (req, res) => {
     }
 };
 
-// Obtener todos los boletos
 exports.getAllBoletos = async (req, res) => {
     try {
         const boletos = await Boleto.findAll();
@@ -108,13 +98,9 @@ exports.getAllBoletos = async (req, res) => {
     }
 };
 
-// Obtener boletos por múltiples criterios
 exports.getBoletos = async (req, res) => {
     try {
-        // Extraer los criterios de búsqueda del query params
         const { idBoleto, idPelicula, idSala, idAsientoReservado, idPago } = req.query;
-        
-        // Construir un objeto de búsqueda basado en los criterios proporcionados
         const searchCriteria = {};
         if (idBoleto) searchCriteria.idBoleto = idBoleto;
         if (idPelicula) searchCriteria.idPelicula = idPelicula;
@@ -122,7 +108,6 @@ exports.getBoletos = async (req, res) => {
         if (idAsientoReservado) searchCriteria.idAsientoReservado = idAsientoReservado;
         if (idPago) searchCriteria.idPago = idPago;
 
-        // Buscar los boletos en la base de datos con los criterios proporcionados
         const boletos = await Boleto.findAll({ where: searchCriteria });
 
         if (boletos.length > 0) {
@@ -135,17 +120,14 @@ exports.getBoletos = async (req, res) => {
     }
 };
 
-// Actualizar boletos por múltiples criterios
 exports.updateBoletos = async (req, res) => {
     try {
         const { idBoleto, idPelicula, idSala, idAsientoReservado, idPago, fechaReserva } = req.body;
 
-        // Validar que al menos uno de los campos esté presente
         if (!idBoleto) {
             return res.status(400).json({ message: 'ID del boleto es requerido para la actualización' });
         }
 
-        // Construir el objeto de actualización
         const updateFields = {};
         if (idPelicula) updateFields.idPelicula = idPelicula;
         if (idSala) updateFields.idSala = idSala;
@@ -153,7 +135,6 @@ exports.updateBoletos = async (req, res) => {
         if (idPago) updateFields.idPago = idPago;
         if (fechaReserva) updateFields.fechaReserva = fechaReserva;
 
-        // Realizar la actualización en la base de datos
         const [updated] = await Boleto.update(updateFields, { where: { idBoleto } });
 
         if (updated) {
@@ -166,26 +147,59 @@ exports.updateBoletos = async (req, res) => {
     }
 };
 
-// Eliminar boletos con validaciones
 exports.deleteBoleto = async (req, res) => {
     try {
         const { idBoleto } = req.params;
 
-        // Validar que el idBoleto sea proporcionado
         if (!idBoleto) {
             return res.status(400).json({ message: 'ID del boleto es requerido para la eliminación' });
         }
 
-        // Verificar si el boleto existe antes de eliminar
         const boleto = await Boleto.findByPk(idBoleto);
         if (!boleto) {
             return res.status(404).json({ message: 'Boleto no encontrado' });
         }
 
-        // Eliminar el boleto
         await Boleto.destroy({ where: { idBoleto } });
 
         res.json({ message: 'Boleto eliminado exitosamente' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+exports.getBoletosPDF = async (req, res) => {
+    try {
+        const boletos = await Boleto.findAll({
+            include: [
+                { model: Pelicula, attributes: ['nombrePelicula'] },
+                { model: Sala, attributes: ['nombreSala'] },
+                { model: Usuario, attributes: ['nombreUsuario'] },
+                { model: Pago, attributes: ['metodoPago'] }
+            ]
+        });
+
+        const doc = new PDFDocument();
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'attachment; filename=boletos.pdf');
+
+        doc.pipe(res);
+
+        doc.fontSize(20).text('Reporte de Boletos', { align: 'center' });
+
+        boletos.forEach(boleto => {
+            doc.fontSize(12).text(`ID: ${boleto.idBoleto}`);
+            doc.fontSize(12).text(`Película: ${boleto.Pelicula.nombrePelicula}`);
+            doc.fontSize(12).text(`Sala: ${boleto.Sala.nombreSala}`);
+            doc.fontSize(12).text(`Asiento: ${boleto.idAsientoReservado}`);
+            doc.fontSize(12).text(`Usuario: ${boleto.Usuario.nombreUsuario}`);
+            doc.fontSize(12).text(`Método de Pago: ${boleto.Pago.metodoPago}`);
+            doc.fontSize(12).text(`Fecha de Reserva: ${boleto.fechaReserva}`);
+            doc.moveDown();
+        });
+
+        doc.end();
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

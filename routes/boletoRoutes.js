@@ -21,4 +21,7 @@ router.put('/', verifyToken, checkRole(['admin']), boletoController.updateBoleto
 // Eliminar un boleto
 router.delete('/:id', verifyToken, checkRole(['admin']), boletoController.deleteBoleto);
 
+// Ruta para generar el reporte en PDF de los boletos
+router.get('/reporte/pdf', verifyToken, checkRole(['admin']), boletoController.getBoletosPDF);
+
 module.exports = router;

@@ -12,13 +12,16 @@ router.post('/', verifyToken, checkRole(['admin']), salaController.createSala);
 // Obtener todas las salas
 router.get('/', verifyToken, checkRole(['admin']), salaController.getAllSalas);
 
-// Buscar salas por criterios
+// Obtener salas por criterios de búsqueda
 router.get('/search', verifyToken, checkRole(['admin']), salaController.getSalas);
 
-// Actualizar una sala
-router.put('/', verifyToken, checkRole(['admin']), salaController.updateSala);
+// Actualizar salas por múltiples criterios
+router.put('/', verifyToken, checkRole(['admin']), salaController.updateSalas);
 
 // Eliminar una sala
-router.delete('/:idSala', verifyToken, checkRole(['admin']), salaController.deleteSala);
+router.delete('/:id', verifyToken, checkRole(['admin']), salaController.deleteSala);
+
+// Ruta para generar el reporte en PDF de las salas
+router.get('/reporte/pdf', verifyToken, checkRole(['admin']), salaController.getSalasPDF);
 
 module.exports = router;
