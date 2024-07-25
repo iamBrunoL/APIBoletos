@@ -4,9 +4,7 @@ const boletoController = require('../controllers/boletoController');
 const verifyToken = require('../middleware/auth');
 const checkRole = require('../middleware/roleMiddleware');
 
-// Definir rutas y sus callbacks
-
-// Crear un nuevo boleto
+// Crear un nuevo boleto con generación de QR
 router.post('/', verifyToken, checkRole(['cliente']), boletoController.createBoleto);
 
 // Obtener todos los boletos
@@ -21,7 +19,7 @@ router.put('/', verifyToken, checkRole(['admin']), boletoController.updateBoleto
 // Eliminar un boleto
 router.delete('/:id', verifyToken, checkRole(['admin']), boletoController.deleteBoleto);
 
-// Ruta para generar el reporte en PDF de los boletos
-router.get('/reporte/pdf', verifyToken, checkRole(['admin']), boletoController.getBoletosPDF);
+// Generar reporte en PDF de boletos
+router.get('/report', verifyToken, checkRole(['admin']), boletoController.generateReport);
 
 module.exports = router;

@@ -7,6 +7,8 @@ const Horario = require('../models/Horario');
 const Sala = require('../models/Sala');
 const jwt = require('jsonwebtoken');
 const PDFDocument = require('pdfkit');
+const QRCode = require('qrcode');
+
 
 exports.createBoleto = async (req, res) => {
     const { idPelicula, idSala, numeroAsientoReservado, metodoPago } = req.body;
@@ -14,6 +16,7 @@ exports.createBoleto = async (req, res) => {
     const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
 
     try {
+        // Obtener la película y su precio
         const pelicula = await Pelicula.findOne({ where: { idPelicula } });
         if (!pelicula) {
             return res.status(400).json({ message: 'Película no encontrada' });
@@ -23,6 +26,7 @@ exports.createBoleto = async (req, res) => {
         const precioBoleto = pelicula.precioBoleto;
         const nombrePelicula = pelicula.nombrePelicula;
 
+        // Obtener la hora programada y el turno del horario
         const horario = await Horario.findOne({ where: { idHorario } });
         if (!horario) {
             return res.status(400).json({ message: 'Horario no encontrado' });
@@ -30,7 +34,9 @@ exports.createBoleto = async (req, res) => {
 
         const horaProgramada = horario.horaProgramada;
         const fechaDeEmision = horario.fechaDeEmision;
+        const turno = horario.turno; // Asegúrate de que el modelo Horario tiene un campo 'turno'
 
+        // Verificar que el asiento está disponible en la sala correcta
         const asiento = await Asiento.findOne({
             where: {
                 numeroAsiento: numeroAsientoReservado,
@@ -42,6 +48,9 @@ exports.createBoleto = async (req, res) => {
             return res.status(400).json({ message: 'Asiento no disponible o no existe' });
         }
 
+        const filaAsiento = asiento.filaAsiento; // Asegúrate de que el modelo Asiento tiene un campo 'filaAsiento'
+
+        // Obtener la sala
         const sala = await Sala.findOne({ where: { idSala } });
         if (!sala) {
             return res.status(400).json({ message: 'Sala no encontrada' });
@@ -49,17 +58,21 @@ exports.createBoleto = async (req, res) => {
 
         const nombreSala = sala.nombreSala;
 
+        // Obtener el usuario
         const usuario = await Usuario.findByPk(decodedToken.id);
         const nombreUsuario = usuario.nombreUsuario;
 
+        // Crear el registro de pago con el precio de la película
         const pago = await Pago.create({
             idUsuario: usuario.idUsuario,
             cantidadPago: precioBoleto,
             metodoPago: metodoPago
         });
 
+        // Obtener la fecha actual para fechaReserva
         const fechaReserva = new Date();
 
+        // Crear el boleto
         const boleto = await Boleto.create({
             idPelicula,
             idHorario,
@@ -69,8 +82,10 @@ exports.createBoleto = async (req, res) => {
             fechaReserva
         });
 
+        // Actualizar el estado del asiento
         await Asiento.update({ estadoAsiento: 'ocupado' }, { where: { idAsiento: asiento.idAsiento } });
 
+        // Datos de la respuesta
         const response = {
             idBoleto: boleto.idBoleto,
             idPago: boleto.idPago,
@@ -79,9 +94,32 @@ exports.createBoleto = async (req, res) => {
             horaProgramada: horaProgramada,
             nombreSala: nombreSala,
             numeroAsientoReservado: numeroAsientoReservado,
+            filaAsiento: filaAsiento,
             fechaReserva: boleto.fechaReserva,
-            fechaDeEmision: fechaDeEmision
+            fechaDeEmision: fechaDeEmision,
+            turno: turno // Incluir el turno
         };
+
+        // Generar el QR con la información especificada
+        const qrCodeData = `
+            Cine Fox
+            Numero de Boleto: ${boleto.idBoleto}
+            Numero de transaccion: ${boleto.idPago}
+            Fecha de compra: ${boleto.fechaReserva.toISOString().split('T')[0]}
+            Usuario: ${nombreUsuario}
+            Pelicula: ${nombrePelicula}
+            Fecha de emision: ${fechaDeEmision}
+            Hora de emision: ${horaProgramada}
+            Turno: ${turno}
+            Sala: ${nombreSala}
+            Fila de asiento: ${filaAsiento}
+            Numero de asiento: ${numeroAsientoReservado}
+            
+        `;
+        const qrCode = await QRCode.toDataURL(qrCodeData);
+
+        // Incluir el QR en la respuesta
+        response.qrCode = qrCode;
 
         res.json(response);
     } catch (error) {
@@ -89,6 +127,9 @@ exports.createBoleto = async (req, res) => {
     }
 };
 
+
+
+// Obtener todos los boletos
 exports.getAllBoletos = async (req, res) => {
     try {
         const boletos = await Boleto.findAll();
@@ -98,6 +139,7 @@ exports.getAllBoletos = async (req, res) => {
     }
 };
 
+// Obtener boletos por múltiples criterios
 exports.getBoletos = async (req, res) => {
     try {
         const { idBoleto, idPelicula, idSala, idAsientoReservado, idPago } = req.query;
@@ -120,10 +162,10 @@ exports.getBoletos = async (req, res) => {
     }
 };
 
+// Actualizar boletos por múltiples criterios
 exports.updateBoletos = async (req, res) => {
     try {
         const { idBoleto, idPelicula, idSala, idAsientoReservado, idPago, fechaReserva } = req.body;
-
         if (!idBoleto) {
             return res.status(400).json({ message: 'ID del boleto es requerido para la actualización' });
         }
@@ -147,10 +189,10 @@ exports.updateBoletos = async (req, res) => {
     }
 };
 
+// Eliminar boletos con validaciones
 exports.deleteBoleto = async (req, res) => {
     try {
         const { idBoleto } = req.params;
-
         if (!idBoleto) {
             return res.status(400).json({ message: 'ID del boleto es requerido para la eliminación' });
         }
@@ -161,42 +203,57 @@ exports.deleteBoleto = async (req, res) => {
         }
 
         await Boleto.destroy({ where: { idBoleto } });
-
         res.json({ message: 'Boleto eliminado exitosamente' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 };
 
-exports.getBoletosPDF = async (req, res) => {
+// Generar reporte en PDF de boletos
+exports.generateReport = async (req, res) => {
     try {
         const boletos = await Boleto.findAll({
             include: [
+                { model: Usuario, attributes: ['nombreUsuario'] },
                 { model: Pelicula, attributes: ['nombrePelicula'] },
                 { model: Sala, attributes: ['nombreSala'] },
-                { model: Usuario, attributes: ['nombreUsuario'] },
-                { model: Pago, attributes: ['metodoPago'] }
+                { model: Horario, attributes: ['horaProgramada', 'fechaDeEmision'] },
+                { model: Asiento, attributes: ['numeroAsiento'] }
             ]
         });
 
+        if (!boletos || boletos.length === 0) {
+            return res.status(404).json({ message: 'No se encontraron boletos para el reporte' });
+        }
+
         const doc = new PDFDocument();
+        let buffers = [];
+        doc.on('data', buffers.push.bind(buffers));
+        doc.on('end', () => {
+            let pdfData = Buffer.concat(buffers);
+            res
+                .writeHead(200, {
+                    'Content-Length': Buffer.byteLength(pdfData),
+                    'Content-Type': 'application/pdf',
+                    'Content-disposition': 'attachment;filename=boletos_report.pdf',
+                })
+                .end(pdfData);
+        });
 
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', 'attachment; filename=boletos.pdf');
+        doc.fontSize(14).text('Reporte de Boletos', { align: 'center' });
+        doc.moveDown();
 
-        doc.pipe(res);
-
-        doc.fontSize(20).text('Reporte de Boletos', { align: 'center' });
-
-        boletos.forEach(boleto => {
-            doc.fontSize(12).text(`ID: ${boleto.idBoleto}`);
-            doc.fontSize(12).text(`Película: ${boleto.Pelicula.nombrePelicula}`);
-            doc.fontSize(12).text(`Sala: ${boleto.Sala.nombreSala}`);
-            doc.fontSize(12).text(`Asiento: ${boleto.idAsientoReservado}`);
-            doc.fontSize(12).text(`Usuario: ${boleto.Usuario.nombreUsuario}`);
-            doc.fontSize(12).text(`Método de Pago: ${boleto.Pago.metodoPago}`);
-            doc.fontSize(12).text(`Fecha de Reserva: ${boleto.fechaReserva}`);
-            doc.moveDown();
+        boletos.forEach((boleto) => {
+            doc
+                .fontSize(12)
+                .text(`Boleto ID: ${boleto.idBoleto}`)
+                .text(`Usuario: ${boleto.Usuario.nombreUsuario}`)
+                .text(`Película: ${boleto.Pelicula.nombrePelicula}`)
+                .text(`Sala: ${boleto.Sala.nombreSala}`)
+                .text(`Asiento: ${boleto.Asiento.numeroAsiento}`)
+                .text(`Hora Programada: ${boleto.Horario.horaProgramada}`)
+                .text(`Fecha de Emisión: ${boleto.Horario.fechaDeEmision}`)
+                .moveDown();
         });
 
         doc.end();
