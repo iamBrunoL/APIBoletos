@@ -22,6 +22,6 @@ router.put('/', verifyToken, checkRole(['admin']), horarioController.updateHorar
 router.delete('/:idHorario', verifyToken, checkRole(['admin']), horarioController.deleteHorario);
 
 // Ruta para generar el reporte en PDF de los horarios
-router.get('/reporte', horarioController.getHorariosPDF);
+router.get('/reporte', verifyToken, checkRole(['admin']), horarioController.getHorariosPDF);
 
 module.exports = router;
