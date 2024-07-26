@@ -19,9 +19,9 @@ router.get('/search', verifyToken, checkRole(['admin']), pagoController.getPagos
 router.put('/', verifyToken, checkRole(['admin']), pagoController.updatePagos);
 
 // Eliminar un pago
-router.delete('/:id', verifyToken, checkRole(['admin']), pagoController.deletePago);
+router.delete('/:idCompra', verifyToken, checkRole(['admin']), pagoController.deletePago);
 
 // Ruta para generar el reporte en PDF de los pagos
-router.get('/reporte/pdf', verifyToken, checkRole(['admin']), pagoController.getPagosPDF);
+router.get('/reporte', verifyToken, checkRole(['admin']),  pagoController.getPagosPDF);
 
 module.exports = router;
