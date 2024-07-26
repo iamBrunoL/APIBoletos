@@ -1,7 +1,32 @@
 const Asiento = require('../models/Asiento');
+const Sala = require('../models/Sala');
 
 exports.createAsiento = async (req, res) => {
     try {
+        const { filaAsiento, idSalaAsiento, numeroAsiento, estadoAsiento } = req.body;
+
+        // Validar que la sala exista
+        const sala = await Sala.findByPk(idSalaAsiento);
+        if (!sala) {
+            return res.status(400).json({ message: 'La sala no existe. Debe crear primero la sala o comprobar los datos ingresados.' });
+        }
+
+        // Validar que el asiento no exista ya en la misma fila y sala
+        const existingAsiento = await Asiento.findOne({
+            where: { filaAsiento, idSalaAsiento, numeroAsiento }
+        });
+        if (existingAsiento) {
+            return res.status(400).json({ message: 'El asiento ya existe en la misma fila y sala.' });
+        }
+
+        // Validar fila (debe ser una letra) y estadoAsiento
+        if (!/^[A-Za-z]$/.test(filaAsiento)) {
+            return res.status(400).json({ message: 'Fila no válida. Debe ser una letra.' });
+        }
+        if (!['disponible', 'ocupado'].includes(estadoAsiento)) {
+            return res.status(400).json({ message: 'Estado no válido. Debe ser "disponible" o "ocupado".' });
+        }
+
         const asiento = await Asiento.create(req.body);
         res.json(asiento);
     } catch (error) {
@@ -49,27 +74,27 @@ exports.updateAsientos = async (req, res) => {
     try {
         const { idAsiento, filaAsiento, idSalaAsiento, estadoAsiento } = req.body;
 
-        // Validar que al menos uno de los campos esté presente
-        if (!idAsiento && !filaAsiento && !idSalaAsiento && !estadoAsiento) {
-            return res.status(400).json({ message: 'Debe proporcionar al menos un campo para actualizar' });
+        // Validar estadoAsiento
+        if (!['disponible', 'ocupado'].includes(estadoAsiento)) {
+            return res.status(400).json({ message: 'Estado no válido. Debe ser "disponible" o "ocupado".' });
         }
 
-        // Construir el objeto de actualización
-        const updateFields = {};
-        if (filaAsiento) updateFields.filaAsiento = filaAsiento;
-        if (idSalaAsiento) updateFields.idSalaAsiento = idSalaAsiento;
-        if (estadoAsiento) updateFields.estadoAsiento = estadoAsiento;
+        let searchCriteria = {};
 
-        // Verificar si se ha proporcionado un idAsiento para realizar la actualización
-        if (!idAsiento) {
-            return res.status(400).json({ message: 'ID del asiento es requerido para la actualización' });
+        // Verificar si se ha proporcionado un idAsiento
+        if (idAsiento) {
+            searchCriteria = { idAsiento };
+        } else if (filaAsiento && idSalaAsiento) {
+            searchCriteria = { filaAsiento, idSalaAsiento };
+        } else {
+            return res.status(400).json({ message: 'Debe proporcionar el ID del asiento o la fila y la sala para la actualización.' });
         }
 
         // Realizar la actualización en la base de datos
-        const [updated] = await Asiento.update(updateFields, { where: { idAsiento } });
+        const [updated] = await Asiento.update({ estadoAsiento }, { where: searchCriteria });
 
         if (updated) {
-            res.json({ message: 'Asiento actualizado exitosamente' });
+            res.json({ message: 'Estado del asiento actualizado exitosamente' });
         } else {
             res.status(404).json({ message: 'Asiento no encontrado' });
         }
@@ -81,21 +106,21 @@ exports.updateAsientos = async (req, res) => {
 // Eliminar asientos con validaciones
 exports.deleteAsiento = async (req, res) => {
     try {
-        const { idAsiento } = req.params;
+        const { id } = req.params;
 
         // Validar que el idAsiento sea proporcionado
-        if (!idAsiento) {
+        if (!id) {
             return res.status(400).json({ message: 'ID del asiento es requerido para la eliminación' });
         }
 
         // Verificar si el asiento existe antes de eliminar
-        const asiento = await Asiento.findByPk(idAsiento);
+        const asiento = await Asiento.findByPk(id);
         if (!asiento) {
             return res.status(404).json({ message: 'Asiento no encontrado' });
         }
 
         // Eliminar el asiento
-        await Asiento.destroy({ where: { idAsiento } });
+        await Asiento.destroy({ where: { idAsiento: id } });
 
         res.json({ message: 'Asiento eliminado exitosamente' });
     } catch (error) {

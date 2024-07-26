@@ -12,6 +12,10 @@ const Asiento = sequelize.define('Asiento', {
     type: DataTypes.STRING,
     allowNull: false
   },
+  numeroAsiento: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
   idSalaAsiento: {
     type: DataTypes.INTEGER,
     allowNull: false,
