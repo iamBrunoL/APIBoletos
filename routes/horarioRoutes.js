@@ -19,9 +19,9 @@ router.get('/search', verifyToken, checkRole(['admin']), horarioController.getHo
 router.put('/', verifyToken, checkRole(['admin']), horarioController.updateHorarios);
 
 // Eliminar un horario
-router.delete('/:id', verifyToken, checkRole(['admin']), horarioController.deleteHorario);
+router.delete('/:idHorario', verifyToken, checkRole(['admin']), horarioController.deleteHorario);
 
 // Ruta para generar el reporte en PDF de los horarios
-router.get('/reporte/pdf', verifyToken, checkRole(['admin']), horarioController.getHorariosPDF);
+router.get('/reporte', horarioController.getHorariosPDF);
 
 module.exports = router;
