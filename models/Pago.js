@@ -29,4 +29,6 @@ const Pago = sequelize.define("Pago", {
   timestamps: false
 });
 
+Pago.belongsTo(Usuario, { foreignKey: 'idUsuario' });
+
 module.exports = Pago;

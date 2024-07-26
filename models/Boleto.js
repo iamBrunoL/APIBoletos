@@ -61,4 +61,10 @@ const Boleto = sequelize.define('Boleto', {
   timestamps: false
 });
 
+Boleto.belongsTo(Pelicula, { foreignKey: 'idPelicula' });
+Boleto.belongsTo(Horario, { foreignKey: 'idHorario' });
+Boleto.belongsTo(Pago, { foreignKey: 'idPago' });
+Boleto.belongsTo(Sala, { foreignKey: 'idSala' });
+Boleto.belongsTo(Asiento, { foreignKey: 'idAsientoReservado' });
+
 module.exports = Boleto;

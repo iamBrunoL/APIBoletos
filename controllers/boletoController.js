@@ -270,13 +270,12 @@ exports.deleteBoleto = async (req, res) => {
 };
 
 
-
-// Generar reporte en PDF de boletos
 exports.generateReport = async (req, res) => {
     try {
+        // Obtener todos los boletos con las asociaciones necesarias
         const boletos = await Boleto.findAll({
             include: [
-                { model: Usuario, attributes: ['nombreUsuario'] },
+                { model: Pago, include: [{ model: Usuario, attributes: ['nombreUsuario'] }] },
                 { model: Pelicula, attributes: ['nombrePelicula'] },
                 { model: Sala, attributes: ['nombreSala'] },
                 { model: Horario, attributes: ['horaProgramada', 'fechaDeEmision'] },
@@ -309,7 +308,7 @@ exports.generateReport = async (req, res) => {
             doc
                 .fontSize(12)
                 .text(`Boleto ID: ${boleto.idBoleto}`)
-                .text(`Usuario: ${boleto.Usuario.nombreUsuario}`)
+                .text(`Usuario: ${boleto.Pago.Usuario.nombreUsuario}`)
                 .text(`Película: ${boleto.Pelicula.nombrePelicula}`)
                 .text(`Sala: ${boleto.Sala.nombreSala}`)
                 .text(`Asiento: ${boleto.Asiento.numeroAsiento}`)
