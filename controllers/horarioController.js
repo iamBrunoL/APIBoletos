@@ -1,6 +1,5 @@
 const Horario = require('../models/Horario');
 const Pelicula = require('../models/Pelicula');
-const Sala = require('../models/Sala');
 const PDFDocument = require('pdfkit');
 const { Op } = require('sequelize');const { validationResult } = require('express-validator');
 

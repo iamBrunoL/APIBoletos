@@ -19,9 +19,9 @@ router.get('/search', verifyToken, checkRole(['admin']), peliculaController.getP
 router.put('/', verifyToken, checkRole(['admin']), peliculaController.updatePeliculas);
 
 // Eliminar una película
-router.delete('/:id', verifyToken, checkRole(['admin']), peliculaController.deletePelicula);
+router.delete('/:idPelicula', verifyToken, checkRole(['admin']), peliculaController.deletePelicula);
 
 // Ruta para generar el reporte en PDF de las películas
-router.get('/reporte/pdf', verifyToken, checkRole(['admin']), peliculaController.getPeliculasPDF);
+router.get('/reporte',  peliculaController.getPeliculasPDF);
 
 module.exports = router;

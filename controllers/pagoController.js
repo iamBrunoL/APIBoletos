@@ -74,7 +74,7 @@ exports.getPagos = async (req, res) => {
         const searchCriteria = {};
         if (idCompra) searchCriteria.idCompra = idCompra;
         if (idUsuario) searchCriteria.idUsuario = idUsuario;
-        if (metodoPago) searchCriteria.metodoPago = metodoPago;
+        if (metodoPago) searchCriteria.metodoPago = { [Op.like]: `%${metodoPago}%` };
 
         const pagos = await Pago.findAll({ where: searchCriteria });
 
