@@ -77,7 +77,7 @@ exports.getAllPeliculas = async (req, res) => {
 // Obtener películas por criterios de búsqueda
 exports.getPeliculas = async (req, res) => {
     try {
-        const { idPelicula, nombrePelicula, clasificacionPelicula, directorPelicula, duracionPelicula, actoresPelicula, idHorario,  } = req.query;
+        const { idPelicula, nombrePelicula, clasificacionPelicula, directorPelicula, duracionPelicula, actoresPelicula, idHorario, precioBoleto } = req.query;
         const searchCriteria = {};
         if (idPelicula) searchCriteria.idPelicula = idPelicula;
         if (nombrePelicula) searchCriteria.nombrePelicula = nombrePelicula;

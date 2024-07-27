@@ -4,17 +4,23 @@ const usuarioController = require('../controllers/usuarioController');
 const verifyToken = require('../middleware/auth');
 const checkRole = require('../middleware/roleMiddleware');
 
-// Definir rutas y sus callbacks
+// Ruta para crear usuarios 
 router.post('/', usuarioController.createUsuario);
-router.post('/login', usuarioController.loginUsuario); // Ruta para login no protegida
+
+// Rutas para manejo de sesion de usuarios 
+router.post('/login', usuarioController.loginUsuario);
 router.post('/logout', usuarioController.logoutUsuario);
 
+// Ruta para buscar usuarios 
 router.get('/', verifyToken, checkRole(['admin']), usuarioController.getAllUsuarios);
 
-// Nueva ruta para buscar usuarios por criterios
+// Ruta para buscar usuarios por criterios
 router.get('/search', verifyToken, checkRole(['admin']), usuarioController.getUsuarios);
 
+// Ruta para actualizar usuarios 
 router.put('/:id', verifyToken, checkRole(['admin']), usuarioController.updateUsuario);
-router.delete('/:id', verifyToken, checkRole(['admin']), usuarioController.deleteUsuario);
+
+// Ruta para eliminar usuarios 
+router.delete('/:idUsuario', verifyToken, checkRole(['admin']), usuarioController.deleteUsuario);
 
 module.exports = router;

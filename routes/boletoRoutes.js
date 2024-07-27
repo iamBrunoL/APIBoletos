@@ -20,6 +20,6 @@ router.put('/', verifyToken, checkRole(['admin']), boletoController.updateBoleto
 router.delete('/:id', verifyToken, checkRole(['admin']), boletoController.deleteBoleto);
 
 // Generar reporte en PDF de boletos
-router.get('/report', verifyToken, checkRole(['admin']), boletoController.generateReport);
+router.get('/reporte', verifyToken, checkRole(['admin']), boletoController.generateReport);
 
 module.exports = router;
