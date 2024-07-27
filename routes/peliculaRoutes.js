@@ -4,8 +4,6 @@ const peliculaController = require('../controllers/peliculaController');
 const verifyToken = require('../middleware/auth');
 const checkRole = require('../middleware/roleMiddleware');
 
-// Definir rutas y sus callbacks
-
 // Crear una nueva película
 router.post('/', verifyToken, checkRole(['admin']), peliculaController.createPelicula);
 

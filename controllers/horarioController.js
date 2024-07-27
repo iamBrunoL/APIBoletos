@@ -1,7 +1,8 @@
 const Horario = require('../models/Horario');
 const Pelicula = require('../models/Pelicula');
 const PDFDocument = require('pdfkit');
-const { Op } = require('sequelize');const { validationResult } = require('express-validator');
+const { Op } = require('sequelize');
+const { validationResult } = require('express-validator');
 
 // Crear un nuevo horario
 exports.createHorario = async (req, res) => {
