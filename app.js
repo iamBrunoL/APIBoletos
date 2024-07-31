@@ -9,10 +9,14 @@ const asientoRoutes = require('./routes/asientoRoutes');
 const boletoRoutes = require('./routes/boletoRoutes');
 const pagoRoutes = require('./routes/pagoRoutes');
 require('dotenv').config(); // Cargar variables de entorno
+const path = require('path'); // Importar el módulo path para gestionar rutas
 
 const app = express();
 app.use(express.json());
 app.use(morgan('dev'));
+
+// Servir archivos estáticos desde la carpeta 'public'
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Ruta para la raíz del servidor
 app.get('/', (req, res) => {

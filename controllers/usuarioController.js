@@ -2,6 +2,7 @@ const Usuario = require('../models/Usuario');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { blacklistToken } = require('../middleware/blacklist');
+const registrarLog = require('../middleware/logs'); 
 
 exports.createUsuario = async (req, res) => {
     try {
@@ -120,24 +121,30 @@ exports.deleteUsuario = async (req, res) => {
     }
 };
 
-// Iniciar sesión
 exports.loginUsuario = async (req, res) => {
     try {
         const { correoUsuario, contrasenaUsuario } = req.body;
         const usuario = await Usuario.findOne({ where: { correoUsuario } });
 
         if (!usuario) {
+            // Registrar intento de login fallido
+            await registrarLog(req, 'Intento de inicio de sesión fallido - Usuario no encontrado');
             return res.status(404).json({ message: 'Usuario no encontrado' });
         }
 
         const isMatch = await bcrypt.compare(contrasenaUsuario, usuario.contrasenaUsuario);
 
         if (!isMatch) {
+            // Registrar intento de login fallido
+            await registrarLog(req, 'Intento de inicio de sesión fallido - Contraseña incorrecta');
             return res.status(400).json({ message: 'Contraseña incorrecta' });
         }
 
         const payload = { id: usuario.idUsuario, tipo: usuario.tipoUsuario };
         const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+        // Registrar inicio de sesión exitoso
+        await registrarLog(req, 'Inicio de sesión exitoso');
 
         res.json({ token });
     } catch (error) {
@@ -145,12 +152,20 @@ exports.loginUsuario = async (req, res) => {
     }
 };
 
-// Cerrar sesión
 exports.logoutUsuario = async (req, res) => {
     try {
         const token = req.headers['authorization'];
         if (token) {
+            // Suponiendo que la función blacklistToken marca el token como inválido o lo guarda en una lista negra
             blacklistToken(token);
+
+            // Extraer el ID de usuario del token para registrar el logout
+            const decoded = jwt.decode(token);
+            const usuario = decoded ? decoded.id : 'desconocido';
+
+            // Registrar cierre de sesión
+            await registrarLog(req, `Cierre de sesión del usuario ${usuario}`);
+
             res.json({ message: 'Sesión cerrada correctamente' });
         } else {
             res.status(400).json({ message: 'Token no proporcionado' });

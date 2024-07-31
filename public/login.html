@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Cine Fox</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            width: 300px;
+        }
+        h2 {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            border: none;
+            color: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .message {
+            margin-top: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Iniciar Sesión</h2>
+        <form id="loginForm">
+            <input type="email" id="correoUsuario" placeholder="Correo electrónico" required>
+            <input type="password" id="contrasenaUsuario" placeholder="Contraseña" required>
+            <button type="submit">Iniciar sesión</button>
+        </form>
+        <div class="message" id="message"></div>
+    </div>
+    
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            
+            const correoUsuario = document.getElementById('correoUsuario').value;
+            const contrasenaUsuario = document.getElementById('contrasenaUsuario').value;
+            
+            try {
+                const response = await fetch('http://localhost:3000/usuarios/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ correoUsuario, contrasenaUsuario })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    document.getElementById('message').innerText = 'Inicio de sesión exitoso. Token: ' + result.token;
+                } else {
+                    document.getElementById('message').innerText = 'Error: ' + result.message;
+                }
+            } catch (error) {
+                document.getElementById('message').innerText = 'Error al realizar la solicitud.';
+            }
+        });
+    </script>
+</body>
+</html>

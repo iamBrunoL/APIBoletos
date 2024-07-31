@@ -119,11 +119,17 @@ INSERT INTO `horarios` (`idHorario`, `horaProgramada`, `turno`, `fechaDeEmision`
 (7, '21:00:00', 'noche', '2024-07-25'),
 (8, '23:00:00', 'noche', '2024-07-31');
 
-CREATE TABLE `logs` (
-  `idLog` int NOT NULL,
-  `usuario` varchar(100) NOT NULL,
-  `accion` text NOT NULL,
-  `fechaHora` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE logs (
+  idLog INT AUTO_INCREMENT PRIMARY KEY,
+  usuario VARCHAR(100) NOT NULL,
+  accion TEXT NOT NULL,
+  fechaHora DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  host VARCHAR(255) NOT NULL,
+  navegador VARCHAR(255) NOT NULL,
+  sistemaOperativo VARCHAR(255) NOT NULL,
+  tipoDispositivo VARCHAR(255) NOT NULL,
+  direccionIP VARCHAR(45) NOT NULL,
+  ubicacion VARCHAR(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE `pagos` (
@@ -194,8 +200,6 @@ ALTER TABLE `boletos`
 ALTER TABLE `horarios`
   ADD PRIMARY KEY (`idHorario`);
 
-ALTER TABLE `logs`
-  ADD PRIMARY KEY (`idLog`);
 
 ALTER TABLE `pagos`
   ADD PRIMARY KEY (`idCompra`),
@@ -221,8 +225,6 @@ ALTER TABLE `boletos`
 ALTER TABLE `horarios`
   MODIFY `idHorario` int NOT NULL AUTO_INCREMENT;
 
-ALTER TABLE `logs`
-  MODIFY `idLog` int NOT NULL AUTO_INCREMENT;
 
 ALTER TABLE `pagos`
   MODIFY `idCompra` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
