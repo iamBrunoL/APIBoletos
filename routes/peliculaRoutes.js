@@ -20,6 +20,6 @@ router.put('/', verifyToken, checkRole(['admin']), peliculaController.updatePeli
 router.delete('/:idPelicula', verifyToken, checkRole(['admin']), peliculaController.deletePelicula);
 
 // Ruta para generar el reporte en PDF de las películas
-router.get('/reporte',  peliculaController.getPeliculasPDF);
+router.get('/reporte', verifyToken, checkRole(['admin']), peliculaController.getPeliculasPDF);
 
 module.exports = router;

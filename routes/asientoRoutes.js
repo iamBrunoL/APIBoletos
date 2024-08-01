@@ -21,4 +21,7 @@ router.put('/', verifyToken, checkRole(['admin']), asientoController.updateAsien
 // Eliminar un asiento
 router.delete('/:id', verifyToken, checkRole(['admin']), asientoController.deleteAsiento);
 
+// Generar reporte PDF de los asientos
+router.get('/reporte', verifyToken, checkRole(['admin']), asientoController.getAsientosPDF);
+
 module.exports = router;

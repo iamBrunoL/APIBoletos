@@ -1,6 +1,7 @@
 const Pago = require('../models/Pago');
 const Usuario = require('../models/Usuario');
 const PDFDocument = require('pdfkit');
+const { registrarLog } = require('../middleware/logs'); // Importar la función para registrar logs
 
 // Crear un nuevo pago
 exports.createPago = async (req, res) => {
@@ -11,31 +12,43 @@ exports.createPago = async (req, res) => {
 
     // Validar los datos requeridos
     if (!idUsuario) {
-        return res.status(400).json({ error: 'El campo idUsuario es requerido.' });
+        const errorMessage = 'El campo idUsuario es requerido.';
+        registrarLog(req, errorMessage); // Registrar el error
+        return res.status(400).json({ error: errorMessage });
     }
     if (!cantidadPago) {
-        return res.status(400).json({ error: 'El campo cantidadPago es requerido.' });
+        const errorMessage = 'El campo cantidadPago es requerido.';
+        registrarLog(req, errorMessage); // Registrar el error
+        return res.status(400).json({ error: errorMessage });
     }
     if (!metodoPago) {
-        return res.status(400).json({ error: 'El campo metodoPago es requerido.' });
+        const errorMessage = 'El campo metodoPago es requerido.';
+        registrarLog(req, errorMessage); // Registrar el error
+        return res.status(400).json({ error: errorMessage });
     }
 
     // Validar que cantidadPago sea un número positivo
     if (isNaN(cantidadPago) || cantidadPago <= 0) {
-        return res.status(400).json({ error: 'El campo cantidadPago debe ser un número positivo.' });
+        const errorMessage = 'El campo cantidadPago debe ser un número positivo.';
+        registrarLog(req, errorMessage); // Registrar el error
+        return res.status(400).json({ error: errorMessage });
     }
 
     // Validar que metodoPago esté en un conjunto permitido (opcional)
     const metodosPermitidos = ['tarjeta', 'efectivo', 'transferencia'];
     if (!metodosPermitidos.includes(metodoPago)) {
-        return res.status(400).json({ error: 'El campo metodoPago debe ser uno de los siguientes: tarjeta, efectivo, transferencia.' });
+        const errorMessage = 'El campo metodoPago debe ser uno de los siguientes: tarjeta, efectivo, transferencia.';
+        registrarLog(req, errorMessage); // Registrar el error
+        return res.status(400).json({ error: errorMessage });
     }
 
     try {
         // Verificar que el usuario existe
         const usuario = await Usuario.findByPk(idUsuario);
         if (!usuario) {
-            return res.status(404).json({ error: 'Usuario no encontrado.' });
+            const errorMessage = 'Usuario no encontrado.';
+            registrarLog(req, errorMessage); // Registrar el error
+            return res.status(404).json({ error: errorMessage });
         }
 
         // Crear el nuevo pago
@@ -45,24 +58,28 @@ exports.createPago = async (req, res) => {
             metodoPago
         });
 
+        registrarLog(req, 'Pago creado exitosamente'); // Registrar la acción exitosa
         res.status(201).json(pago);
     } catch (error) {
         // Manejar errores específicos de Sequelize
         if (error.name === 'SequelizeValidationError') {
             const errors = error.errors.map(e => e.message);
+            registrarLog(req, `Errores de validación: ${errors.join(', ')}`); // Registrar el error
             return res.status(400).json({ error: errors.join(', ') });
         }
+        registrarLog(req, `Error al crear pago: ${error.message}`); // Registrar el error
         res.status(500).json({ error: error.message });
     }
 };
-
 
 // Obtener todos los pagos
 exports.getAllPagos = async (req, res) => {
     try {
         const pagos = await Pago.findAll();
+        registrarLog(req, 'Obtención de todos los pagos realizada exitosamente'); // Registrar la acción exitosa
         res.json(pagos);
     } catch (error) {
+        registrarLog(req, `Error al obtener todos los pagos: ${error.message}`); // Registrar el error
         res.status(500).json({ error: error.message });
     }
 };
@@ -79,11 +96,15 @@ exports.getPagos = async (req, res) => {
         const pagos = await Pago.findAll({ where: searchCriteria });
 
         if (pagos.length > 0) {
+            registrarLog(req, 'Obtención de pagos por criterios realizada exitosamente'); // Registrar la acción exitosa
             res.json(pagos);
         } else {
-            res.status(404).json({ message: 'No se encontraron pagos con los criterios proporcionados' });
+            const message = 'No se encontraron pagos con los criterios proporcionados';
+            registrarLog(req, message); // Registrar la falta de resultados
+            res.status(404).json({ message });
         }
     } catch (error) {
+        registrarLog(req, `Error al obtener pagos por criterios: ${error.message}`); // Registrar el error
         res.status(500).json({ error: error.message });
     }
 };
@@ -97,23 +118,31 @@ exports.updatePagos = async (req, res) => {
 
     // Validar el ID del pago
     if (!idCompra) {
-        return res.status(400).json({ error: 'ID del pago es requerido para la actualización.' });
+        const errorMessage = 'ID del pago es requerido para la actualización.';
+        registrarLog(req, errorMessage); // Registrar el error
+        return res.status(400).json({ error: errorMessage });
     }
 
     // Validar que al menos uno de los campos a actualizar esté presente
     if (!idUsuario && !cantidadPago && !metodoPago) {
-        return res.status(400).json({ error: 'Debe proporcionar al menos uno de los campos para actualizar.' });
+        const errorMessage = 'Debe proporcionar al menos uno de los campos para actualizar.';
+        registrarLog(req, errorMessage); // Registrar el error
+        return res.status(400).json({ error: errorMessage });
     }
 
     // Validar que cantidadPago sea un número positivo
     if (cantidadPago && (isNaN(cantidadPago) || cantidadPago <= 0)) {
-        return res.status(400).json({ error: 'El campo cantidadPago debe ser un número positivo.' });
+        const errorMessage = 'El campo cantidadPago debe ser un número positivo.';
+        registrarLog(req, errorMessage); // Registrar el error
+        return res.status(400).json({ error: errorMessage });
     }
 
     // Validar que metodoPago esté en un conjunto permitido (opcional)
     const metodosPermitidos = ['tarjeta', 'efectivo', 'transferencia'];
     if (metodoPago && !metodosPermitidos.includes(metodoPago)) {
-        return res.status(400).json({ error: 'El campo metodoPago debe ser uno de los siguientes: tarjeta, efectivo, transferencia.' });
+        const errorMessage = 'El campo metodoPago debe ser uno de los siguientes: tarjeta, efectivo, transferencia.';
+        registrarLog(req, errorMessage); // Registrar el error
+        return res.status(400).json({ error: errorMessage });
     }
 
     try {
@@ -121,7 +150,9 @@ exports.updatePagos = async (req, res) => {
         if (idUsuario) {
             const usuario = await Usuario.findByPk(idUsuario);
             if (!usuario) {
-                return res.status(404).json({ error: 'Usuario no encontrado.' });
+                const errorMessage = 'Usuario no encontrado.';
+                registrarLog(req, errorMessage); // Registrar el error
+                return res.status(404).json({ error: errorMessage });
             }
         }
 
@@ -135,23 +166,29 @@ exports.updatePagos = async (req, res) => {
         });
 
         if (updated) {
+            registrarLog(req, 'Pago actualizado exitosamente'); // Registrar la acción exitosa
             res.json({ message: 'Pago actualizado exitosamente.' });
         } else {
-            res.status(404).json({ error: 'Pago no encontrado.' });
+            const errorMessage = 'Pago no encontrado.';
+            registrarLog(req, errorMessage); // Registrar el error
+            res.status(404).json({ error: errorMessage });
         }
     } catch (error) {
         // Manejar errores específicos de Sequelize
         if (error.name === 'SequelizeForeignKeyConstraintError') {
-            return res.status(400).json({ error: 'Error de clave foránea: asegúrese de que los valores proporcionados sean válidos.' });
+            const errorMessage = 'Error de clave foránea: asegúrese de que los valores proporcionados sean válidos.';
+            registrarLog(req, errorMessage); // Registrar el error
+            return res.status(400).json({ error: errorMessage });
         }
         if (error.name === 'SequelizeValidationError') {
             const errors = error.errors.map(e => e.message);
+            registrarLog(req, `Errores de validación: ${errors.join(', ')}`); // Registrar el error
             return res.status(400).json({ error: errors.join(', ') });
         }
+        registrarLog(req, `Error al actualizar pago: ${error.message}`); // Registrar el error
         res.status(500).json({ error: error.message });
     }
 };
-
 
 // Eliminar un pago
 exports.deletePago = async (req, res) => {
@@ -159,18 +196,24 @@ exports.deletePago = async (req, res) => {
         const { idCompra } = req.params;
 
         if (!idCompra) {
-            return res.status(400).json({ message: 'ID del pago es requerido para la eliminación' });
+            const errorMessage = 'ID del pago es requerido para la eliminación';
+            registrarLog(req, errorMessage); // Registrar el error
+            return res.status(400).json({ message: errorMessage });
         }
 
         const pago = await Pago.findByPk(idCompra);
         if (!pago) {
-            return res.status(404).json({ message: 'Pago no encontrado' });
+            const errorMessage = 'Pago no encontrado';
+            registrarLog(req, errorMessage); // Registrar el error
+            return res.status(404).json({ message: errorMessage });
         }
 
         await Pago.destroy({ where: { idCompra } });
 
+        registrarLog(req, 'Pago eliminado exitosamente'); // Registrar la acción exitosa
         res.json({ message: 'Pago eliminado exitosamente' });
     } catch (error) {
+        registrarLog(req, `Error al eliminar pago: ${error.message}`); // Registrar el error
         res.status(500).json({ error: error.message });
     }
 };
@@ -203,6 +246,7 @@ exports.getPagosPDF = async (req, res) => {
 
         doc.end();
     } catch (error) {
+        registrarLog(req, `Error al generar PDF de pagos: ${error.message}`); // Registrar el error
         res.status(500).json({ error: error.message });
     }
 };

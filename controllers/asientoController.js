@@ -1,5 +1,7 @@
+const PDFDocument = require('pdfkit');
 const Asiento = require('../models/Asiento');
 const Sala = require('../models/Sala');
+const registrarLog = require('../middleware/logs');
 
 exports.createAsiento = async (req, res) => {
     try {
@@ -8,6 +10,7 @@ exports.createAsiento = async (req, res) => {
         // Validar que la sala exista
         const sala = await Sala.findByPk(idSalaAsiento);
         if (!sala) {
+            await registrarLog(req, 'Intento de crear un asiento en una sala inexistente');
             return res.status(400).json({ message: 'La sala no existe. Debe crear primero la sala o comprobar los datos ingresados.' });
         }
 
@@ -16,20 +19,25 @@ exports.createAsiento = async (req, res) => {
             where: { filaAsiento, idSalaAsiento, numeroAsiento }
         });
         if (existingAsiento) {
+            await registrarLog(req, 'Intento de crear un asiento que ya existe en la misma fila y sala');
             return res.status(400).json({ message: 'El asiento ya existe en la misma fila y sala.' });
         }
 
         // Validar fila (debe ser una letra) y estadoAsiento
         if (!/^[A-Za-z]$/.test(filaAsiento)) {
+            await registrarLog(req, 'Intento de crear un asiento con fila no válida');
             return res.status(400).json({ message: 'Fila no válida. Debe ser una letra.' });
         }
         if (!['disponible', 'ocupado'].includes(estadoAsiento)) {
+            await registrarLog(req, 'Intento de crear un asiento con estado no válido');
             return res.status(400).json({ message: 'Estado no válido. Debe ser "disponible" o "ocupado".' });
         }
 
         const asiento = await Asiento.create(req.body);
+        await registrarLog(req, 'Asiento creado exitosamente');
         res.json(asiento);
     } catch (error) {
+        await registrarLog(req, `Error al crear el asiento: ${error.message}`);
         res.status(500).json({ error: error.message });
     }
 };
@@ -37,93 +45,139 @@ exports.createAsiento = async (req, res) => {
 exports.getAllAsientos = async (req, res) => {
     try {
         const asientos = await Asiento.findAll();
+        await registrarLog(req, 'Consulta de todos los asientos');
         res.json(asientos);
     } catch (error) {
+        await registrarLog(req, `Error al obtener todos los asientos: ${error.message}`);
         res.status(500).json({ error: error.message });
     }
 };
 
-// Obtener asientos por múltiples criterios
 exports.getAsientos = async (req, res) => {
     try {
-        // Extraer los criterios de búsqueda del query params
         const { idAsiento, filaAsiento, idSalaAsiento, estadoAsiento } = req.query;
-        
-        // Construir un objeto de búsqueda basado en los criterios proporcionados
         const searchCriteria = {};
+
         if (idAsiento) searchCriteria.idAsiento = idAsiento;
         if (filaAsiento) searchCriteria.filaAsiento = filaAsiento;
         if (idSalaAsiento) searchCriteria.idSalaAsiento = idSalaAsiento;
         if (estadoAsiento) searchCriteria.estadoAsiento = estadoAsiento;
 
-        // Buscar los asientos en la base de datos con los criterios proporcionados
         const asientos = await Asiento.findAll({ where: searchCriteria });
 
         if (asientos.length > 0) {
+            await registrarLog(req, 'Consulta de asientos con criterios específicos');
             res.json(asientos);
         } else {
+            await registrarLog(req, 'No se encontraron asientos con los criterios proporcionados');
             res.status(404).json({ message: 'No se encontraron asientos con los criterios proporcionados' });
         }
     } catch (error) {
+        await registrarLog(req, `Error al obtener asientos: ${error.message}`);
         res.status(500).json({ error: error.message });
     }
 };
 
-// Actualizar asientos por múltiples criterios
 exports.updateAsientos = async (req, res) => {
     try {
         const { idAsiento, filaAsiento, idSalaAsiento, estadoAsiento } = req.body;
 
-        // Validar estadoAsiento
         if (!['disponible', 'ocupado'].includes(estadoAsiento)) {
+            await registrarLog(req, 'Intento de actualizar un asiento con estado no válido');
             return res.status(400).json({ message: 'Estado no válido. Debe ser "disponible" o "ocupado".' });
         }
 
         let searchCriteria = {};
 
-        // Verificar si se ha proporcionado un idAsiento
         if (idAsiento) {
             searchCriteria = { idAsiento };
         } else if (filaAsiento && idSalaAsiento) {
             searchCriteria = { filaAsiento, idSalaAsiento };
         } else {
+            await registrarLog(req, 'Intento de actualizar asiento sin proporcionar criterios válidos');
             return res.status(400).json({ message: 'Debe proporcionar el ID del asiento o la fila y la sala para la actualización.' });
         }
 
-        // Realizar la actualización en la base de datos
         const [updated] = await Asiento.update({ estadoAsiento }, { where: searchCriteria });
 
         if (updated) {
+            await registrarLog(req, 'Asiento actualizado exitosamente');
             res.json({ message: 'Estado del asiento actualizado exitosamente' });
         } else {
+            await registrarLog(req, 'Asiento no encontrado para la actualización');
             res.status(404).json({ message: 'Asiento no encontrado' });
         }
     } catch (error) {
+        await registrarLog(req, `Error al actualizar asiento: ${error.message}`);
         res.status(500).json({ error: error.message });
     }
 };
 
-// Eliminar asientos con validaciones
 exports.deleteAsiento = async (req, res) => {
     try {
         const { id } = req.params;
 
-        // Validar que el idAsiento sea proporcionado
         if (!id) {
+            await registrarLog(req, 'Intento de eliminar un asiento sin ID');
             return res.status(400).json({ message: 'ID del asiento es requerido para la eliminación' });
         }
 
-        // Verificar si el asiento existe antes de eliminar
         const asiento = await Asiento.findByPk(id);
         if (!asiento) {
+            await registrarLog(req, 'Intento de eliminar un asiento que no existe');
             return res.status(404).json({ message: 'Asiento no encontrado' });
         }
 
-        // Eliminar el asiento
         await Asiento.destroy({ where: { idAsiento: id } });
-
+        await registrarLog(req, 'Asiento eliminado exitosamente');
         res.json({ message: 'Asiento eliminado exitosamente' });
     } catch (error) {
+        await registrarLog(req, `Error al eliminar asiento: ${error.message}`);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Generar reporte en PDF de los asientos
+exports.getAsientosPDF = async (req, res) => {
+    try {
+        // Obtener todos los asientos
+        const asientos = await Asiento.findAll();
+
+        // Crear un nuevo documento PDF
+        const doc = new PDFDocument();
+
+        // Configurar los encabezados para la respuesta PDF
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'attachment; filename=asientos.pdf');
+
+        // Enviar el documento PDF a la respuesta
+        doc.pipe(res);
+
+        // Agregar título al documento
+        doc.fontSize(20).text('Reporte de Asientos', { align: 'center' });
+        doc.moveDown();
+
+        // Agregar cada asiento al documento
+        for (const asiento of asientos) {
+            // Obtener los detalles de la sala asociada
+            const sala = await Sala.findByPk(asiento.idSalaAsiento);
+
+            doc.fontSize(12).text(`ID: ${asiento.idAsiento}`);
+            doc.fontSize(12).text(`Fila: ${asiento.filaAsiento}`);
+            doc.fontSize(12).text(`Número: ${asiento.numeroAsiento}`);
+            doc.fontSize(12).text(`Estado: ${asiento.estadoAsiento}`);
+            doc.fontSize(12).text(`Sala: ${sala ? sala.nombreSala : 'Sala no encontrada'}`);
+            doc.moveDown();
+        }
+
+        // Finalizar el documento
+        doc.end();
+
+        // Registrar el log de generación del reporte
+        registrarLog('getAsientosPDF', req, { message: 'Reporte de asientos generado exitosamente' }, 'info');
+    } catch (error) {
+        // Registrar el error y enviar una respuesta de error
+        registrarLog('getAsientosPDF', req, { error: error.message }, 'error');
         res.status(500).json({ error: error.message });
     }
 };
