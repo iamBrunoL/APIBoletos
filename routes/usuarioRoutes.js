@@ -24,7 +24,7 @@ router.put('/:id', verifyToken, checkRole(['admin']), usuarioController.updateUs
 router.delete('/:idUsuario', verifyToken, checkRole(['admin']), usuarioController.deleteUsuario);
 
 // Ruta para generar el reporte en PDF de usuarios
-router.get('/reporte', usuarioController.getUsuariosPDF);
+router.get('/reporte', verifyToken, checkRole(['admin']), usuarioController.getUsuariosPDF);
 
 
 module.exports = router;
