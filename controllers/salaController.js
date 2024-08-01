@@ -25,13 +25,6 @@ exports.createSala = async (req, res) => {
             return res.status(400).json({ message: 'La cantidad de asientos debe ser un número mayor a 0.' });
         }
 
-        // Verificar si la sala ya existe
-        const salaExistente = await Sala.findOne({ where: { nombreSala } });
-        if (salaExistente) {
-            registrarLog('createSala', req, { message: `Sala ya existente: ${nombreSala}` }, 'warn');
-            return res.status(400).json({ message: `Ya existe una sala con el nombre "${nombreSala}". Elige un nombre diferente.` });
-        }
-
         // Calcular la cantidad esperada de asientos
         const cantidadAsientosEsperados = cantidadFilas * maxAsientosPorFila;
 
@@ -39,6 +32,19 @@ exports.createSala = async (req, res) => {
         if (cantidadAsientos !== cantidadAsientosEsperados) {
             registrarLog('createSala', req, { message: `Cantidad de asientos no coincide: esperada ${cantidadAsientosEsperados}, proporcionada ${cantidadAsientos}` }, 'warn');
             return res.status(400).json({ message: `La cantidad de asientos ingresados (${cantidadAsientos}) no coincide con la cantidad calculada (${cantidadAsientosEsperados}).` });
+        }
+
+        // Verificar que la cantidad total de asientos no exceda el máximo permitido (500)
+        if (cantidadAsientos > 500) {
+            registrarLog('createSala', req, { message: 'Cantidad de asientos excede el máximo permitido de 500.' }, 'warn');
+            return res.status(400).json({ message: 'La cantidad de asientos no puede exceder el máximo permitido de 500.' });
+        }
+
+        // Verificar si la sala ya existe
+        const salaExistente = await Sala.findOne({ where: { nombreSala } });
+        if (salaExistente) {
+            registrarLog('createSala', req, { message: `Sala ya existente: ${nombreSala}` }, 'warn');
+            return res.status(400).json({ message: `Ya existe una sala con el nombre "${nombreSala}". Elige un nombre diferente.` });
         }
 
         // Crear la sala
@@ -73,6 +79,7 @@ exports.createSala = async (req, res) => {
         res.status(500).json({ message: 'Error en el servidor. Por favor, intenta de nuevo más tarde.' });
     }
 };
+
 
 // Obtener todas las salas
 exports.getAllSalas = async (req, res) => {
