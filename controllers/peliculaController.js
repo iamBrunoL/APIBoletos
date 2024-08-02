@@ -1,49 +1,47 @@
 const Pelicula = require('../models/Pelicula');
 const PDFDocument = require('pdfkit');
 const registrarLog = require('../middleware/logs'); // Asegúrate de que la ruta sea correcta
-
 // Crear una nueva película
 exports.createPelicula = async (req, res) => {
     const { nombrePelicula, directorPelicula, duracionPelicula, actoresPelicula, clasificacionPelicula, idHorario, precioBoleto } = req.body;
 
-    // Imprimir los datos recibidos para depuración
-    registrarLog('createPelicula', req, { nombrePelicula, directorPelicula, duracionPelicula, actoresPelicula, clasificacionPelicula, idHorario, precioBoleto });
+    // Registrar la solicitud inicial
+    registrarLog(req, 'createPelicula - datos recibidos', { nombrePelicula, directorPelicula, duracionPelicula, actoresPelicula, clasificacionPelicula, idHorario, precioBoleto });
 
     // Definir las clasificaciones permitidas
     const clasificacionesPermitidas = ['G', 'PG', 'PG-13', 'R', 'NC-17'];
 
     // Validar los datos requeridos
     if (!nombrePelicula) {
-        registrarLog('createPelicula', req, { error: 'El campo nombrePelicula es requerido.' }, 'error');
+        registrarLog(req, 'createPelicula - error', { error: 'El campo nombrePelicula es requerido.' });
         return res.status(400).json({ error: 'El campo nombrePelicula es requerido.' });
     }
     if (!directorPelicula) {
-        registrarLog('createPelicula', req, { error: 'El campo directorPelicula es requerido.' }, 'error');
+        registrarLog(req, 'createPelicula - error', { error: 'El campo directorPelicula es requerido.' });
         return res.status(400).json({ error: 'El campo directorPelicula es requerido.' });
     }
     if (!duracionPelicula) {
-        registrarLog('createPelicula', req, { error: 'El campo duracionPelicula es requerido.' }, 'error');
+        registrarLog(req, 'createPelicula - error', { error: 'El campo duracionPelicula es requerido.' });
         return res.status(400).json({ error: 'El campo duracionPelicula es requerido.' });
     }
     if (!actoresPelicula) {
-        registrarLog('createPelicula', req, { error: 'El campo actoresPelicula es requerido.' }, 'error');
+        registrarLog(req, 'createPelicula - error', { error: 'El campo actoresPelicula es requerido.' });
         return res.status(400).json({ error: 'El campo actoresPelicula es requerido.' });
     }
     if (!clasificacionPelicula) {
-        registrarLog('createPelicula', req, { error: 'El campo clasificacionPelicula es requerido.' }, 'error');
+        registrarLog(req, 'createPelicula - error', { error: 'El campo clasificacionPelicula es requerido.' });
         return res.status(400).json({ error: 'El campo clasificacionPelicula es requerido.' });
     }
-    // Validar que la clasificación esté en las permitidas
     if (!clasificacionesPermitidas.includes(clasificacionPelicula)) {
-        registrarLog('createPelicula', req, { error: `El campo clasificacionPelicula debe ser uno de los siguientes: ${clasificacionesPermitidas.join(', ')}.` }, 'error');
+        registrarLog(req, 'createPelicula - error', { error: `El campo clasificacionPelicula debe ser uno de los siguientes: ${clasificacionesPermitidas.join(', ')}.` });
         return res.status(400).json({ error: `El campo clasificacionPelicula debe ser uno de los siguientes: ${clasificacionesPermitidas.join(', ')}.` });
     }
     if (!idHorario) {
-        registrarLog('createPelicula', req, { error: 'El campo idHorario es requerido.' }, 'error');
+        registrarLog(req, 'createPelicula - error', { error: 'El campo idHorario es requerido.' });
         return res.status(400).json({ error: 'El campo idHorario es requerido.' });
     }
     if (!precioBoleto) {
-        registrarLog('createPelicula', req, { error: 'El campo precioBoleto es requerido.' }, 'error');
+        registrarLog(req, 'createPelicula - error', { error: 'El campo precioBoleto es requerido.' });
         return res.status(400).json({ error: 'El campo precioBoleto es requerido.' });
     }
 
@@ -58,20 +56,20 @@ exports.createPelicula = async (req, res) => {
             precioBoleto
         });
 
-        registrarLog('createPelicula', req, { pelicula }, 'info');
+        registrarLog(req, 'createPelicula - éxito', { pelicula });
         res.status(201).json(pelicula);
     } catch (error) {
         // Manejar errores específicos de Sequelize
         if (error.name === 'SequelizeForeignKeyConstraintError') {
-            registrarLog('createPelicula', req, { error: 'El idHorario proporcionado no existe.' }, 'error');
+            registrarLog(req, 'createPelicula - error', { error: 'El idHorario proporcionado no existe.' });
             return res.status(400).json({ error: 'El idHorario proporcionado no existe.' });
         }
         if (error.name === 'SequelizeValidationError') {
             const errors = error.errors.map(e => e.message);
-            registrarLog('createPelicula', req, { error: errors.join(', ') }, 'error');
+            registrarLog(req, 'createPelicula - error', { error: errors.join(', ') });
             return res.status(400).json({ error: errors.join(', ') });
         }
-        registrarLog('createPelicula', req, { error: 'Ocurrió un error al crear la película.' }, 'error');
+        registrarLog(req, 'createPelicula - error', { error: 'Ocurrió un error al crear la película.' });
         res.status(500).json({ error: 'Ocurrió un error al crear la película.' });
     }
 };
@@ -80,10 +78,10 @@ exports.createPelicula = async (req, res) => {
 exports.getAllPeliculas = async (req, res) => {
     try {
         const peliculas = await Pelicula.findAll();
-        registrarLog('getAllPeliculas', req, { peliculas }, 'info');
+        registrarLog(req, 'getAllPeliculas - éxito', { peliculas });
         res.json(peliculas);
     } catch (error) {
-        registrarLog('getAllPeliculas', req, { error: error.message }, 'error');
+        registrarLog(req, 'getAllPeliculas - error', { error: error.message });
         res.status(500).json({ error: error.message });
     }
 };
@@ -105,14 +103,14 @@ exports.getPeliculas = async (req, res) => {
         const peliculas = await Pelicula.findAll({ where: searchCriteria });
 
         if (peliculas.length > 0) {
-            registrarLog('getPeliculas', req, { searchCriteria, peliculas }, 'info');
+            registrarLog(req, 'getPeliculas', { searchCriteria, peliculas }, 'info');
             res.json(peliculas);
         } else {
-            registrarLog('getPeliculas', req, { searchCriteria, message: 'No se encontraron películas con los criterios proporcionados' }, 'warning');
+            registrarLog(req, 'getPeliculas', { searchCriteria, message: 'No se encontraron películas con los criterios proporcionados' }, 'warning');
             res.status(404).json({ message: 'No se encontraron películas con los criterios proporcionados' });
         }
     } catch (error) {
-        registrarLog('getPeliculas', req, { error: error.message }, 'error');
+        registrarLog(req, 'getPeliculas', { error: error.message }, 'error');
         res.status(500).json({ error: error.message });
     }
 };
@@ -123,21 +121,21 @@ exports.updatePeliculas = async (req, res) => {
         const { idPelicula, nombrePelicula, descripcion, duracionPelicula, genero, directorPelicula, actoresPelicula, clasificacionPelicula, precioBoleto, idHorario } = req.body;
 
         if (!idPelicula) {
-            registrarLog('updatePeliculas', req, { message: 'ID de la película es requerido para la actualización' }, 'error');
+            registrarLog(req, 'updatePeliculas', { message: 'ID de la película es requerido para la actualización' }, 'error');
             return res.status(400).json({ message: 'ID de la película es requerido para la actualización' });
         }
 
         // Validar clasificacionPelicula
         const validClasificaciones = ['G', 'PG', 'PG-13', 'R', 'NC-17'];
         if (clasificacionPelicula && !validClasificaciones.includes(clasificacionPelicula)) {
-            registrarLog('updatePeliculas', req, { message: 'Clasificación de película no válida' }, 'error');
+            registrarLog(req, 'updatePeliculas', { message: 'Clasificación de película no válida' }, 'error');
             return res.status(400).json({ message: 'Clasificación de película no válida' });
         }
 
         const updateFields = {};
         if (nombrePelicula) {
             if (nombrePelicula.trim() === '') {
-                registrarLog('updatePeliculas', req, { message: 'Nombre de la película no puede estar vacío' }, 'error');
+                registrarLog(req, 'updatePeliculas', { message: 'Nombre de la película no puede estar vacío' }, 'error');
                 return res.status(400).json({ message: 'Nombre de la película no puede estar vacío' });
             }
             updateFields.nombrePelicula = nombrePelicula;
@@ -145,7 +143,7 @@ exports.updatePeliculas = async (req, res) => {
         if (descripcion) updateFields.descripcion = descripcion;
         if (duracionPelicula) {
             if (duracionPelicula <= 0) {
-                registrarLog('updatePeliculas', req, { message: 'Duración de la película debe ser un número positivo' }, 'error');
+                registrarLog(req, 'updatePeliculas', { message: 'Duración de la película debe ser un número positivo' }, 'error');
                 return res.status(400).json({ message: 'Duración de la película debe ser un número positivo' });
             }
             updateFields.duracionPelicula = duracionPelicula;
@@ -154,7 +152,7 @@ exports.updatePeliculas = async (req, res) => {
         if (directorPelicula) updateFields.directorPelicula = directorPelicula;
         if (actoresPelicula) {
             if (actoresPelicula.trim() === '') {
-                registrarLog('updatePeliculas', req, { message: 'Actores de la película no puede estar vacío' }, 'error');
+                registrarLog(req, 'updatePeliculas', { message: 'Actores de la película no puede estar vacío' }, 'error');
                 return res.status(400).json({ message: 'Actores de la película no puede estar vacío' });
             }
             updateFields.actoresPelicula = actoresPelicula;
@@ -162,7 +160,7 @@ exports.updatePeliculas = async (req, res) => {
         if (clasificacionPelicula) updateFields.clasificacionPelicula = clasificacionPelicula;
         if (precioBoleto) {
             if (precioBoleto <= 0) {
-                registrarLog('updatePeliculas', req, { message: 'Precio del boleto debe ser un número positivo' }, 'error');
+                registrarLog(req, 'updatePeliculas', { message: 'Precio del boleto debe ser un número positivo' }, 'error');
                 return res.status(400).json({ message: 'Precio del boleto debe ser un número positivo' });
             }
             updateFields.precioBoleto = precioBoleto;
@@ -172,14 +170,14 @@ exports.updatePeliculas = async (req, res) => {
         const [updated] = await Pelicula.update(updateFields, { where: { idPelicula } });
 
         if (updated) {
-            registrarLog('updatePeliculas', req, { updateFields }, 'info');
+            registrarLog(req, 'updatePeliculas', { updateFields }, 'info');
             res.json({ message: 'Película actualizada exitosamente' });
         } else {
-            registrarLog('updatePeliculas', req, { message: 'Película no encontrada con el ID proporcionado' }, 'warning');
+            registrarLog(req, 'updatePeliculas', { message: 'Película no encontrada con el ID proporcionado' }, 'warning');
             res.status(404).json({ message: 'Película no encontrada con el ID proporcionado' });
         }
     } catch (error) {
-        registrarLog('updatePeliculas', req, { error: error.message }, 'error');
+        registrarLog(req, 'updatePeliculas', { error: error.message }, 'error');
         res.status(500).json({ message: 'Error interno del servidor', error: error.message });
     }
 };
@@ -191,14 +189,14 @@ exports.deletePelicula = async (req, res) => {
 
         // Verificar si se proporciona el ID de la película
         if (!idPelicula) {
-            registrarLog('deletePelicula', req, { message: 'ID de la película es requerido para la eliminación' }, 'error');
+            registrarLog(req, 'deletePelicula', { message: 'ID de la película es requerido para la eliminación' }, 'error');
             return res.status(400).json({ message: 'ID de la película es requerido para la eliminación' });
         }
 
         // Buscar la película por su ID
         const pelicula = await Pelicula.findByPk(idPelicula);
         if (!pelicula) {
-            registrarLog('deletePelicula', req, { message: 'Película no encontrada con el ID proporcionado' }, 'warning');
+            registrarLog(req, 'deletePelicula', { message: 'Película no encontrada con el ID proporcionado' }, 'warning');
             return res.status(404).json({ message: 'Película no encontrada con el ID proporcionado' });
         }
 
@@ -206,14 +204,13 @@ exports.deletePelicula = async (req, res) => {
         await Pelicula.destroy({ where: { idPelicula } });
 
         // Responder con éxito
-        registrarLog('deletePelicula', req, { idPelicula }, 'info');
+        registrarLog(req, 'deletePelicula', { idPelicula }, 'info');
         res.json({ message: 'Película eliminada exitosamente' });
     } catch (error) {
-        registrarLog('deletePelicula', req, { error: error.message }, 'error');
+        registrarLog(req, 'deletePelicula', { error: error.message }, 'error');
         res.status(500).json({ message: 'Error interno del servidor', error: error.message });
     }
 };
-
 
 // Generar reporte en PDF de las películas
 exports.getPeliculasPDF = async (req, res) => {

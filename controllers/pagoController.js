@@ -1,7 +1,7 @@
 const Pago = require('../models/Pago');
 const Usuario = require('../models/Usuario');
 const PDFDocument = require('pdfkit');
-const { registrarLog } = require('../middleware/logs'); // Importar la función para registrar logs
+const registrarLog = require('../middleware/logs'); // Importar la función para registrar logs
 
 // Crear un nuevo pago
 exports.createPago = async (req, res) => {

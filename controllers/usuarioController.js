@@ -4,17 +4,64 @@ const jwt = require('jsonwebtoken');
 const { blacklistToken } = require('../middleware/blacklist');
 const registrarLog = require('../middleware/logs');
 const PDFDocument = require('pdfkit');
+const { Op } = require('sequelize');
+
 
 // Crear un nuevo usuario
 exports.createUsuario = async (req, res) => {
     try {
-        const { contrasenaUsuario, tipoUsuario, ...rest } = req.body;
+        const { nombreUsuario, apellidoUsuario, edadUsuario, correoUsuario, telefonoUsuario, contrasenaUsuario, tipoUsuario } = req.body;
+
+        // Validar datos de entrada
+        if (!nombreUsuario || typeof nombreUsuario !== 'string' || nombreUsuario.trim() === '') {
+            await registrarLog(req, 'Nombre de usuario inválido', 'warn');
+            return res.status(400).json({ error: 'El nombre de usuario es requerido y debe ser una cadena no vacía.' });
+        }
+        if (!apellidoUsuario || typeof apellidoUsuario !== 'string' || apellidoUsuario.trim() === '') {
+            await registrarLog(req, 'Apellido de usuario inválido', 'warn');
+            return res.status(400).json({ error: 'El apellido de usuario es requerido y debe ser una cadena no vacía.' });
+        }
+        if (!edadUsuario || typeof edadUsuario !== 'number' || edadUsuario <= 0) {
+            await registrarLog(req, 'Edad de usuario inválida', 'warn');
+            return res.status(400).json({ error: 'La edad del usuario es requerida y debe ser un número positivo.' });
+        }
+        if (!correoUsuario || typeof correoUsuario !== 'string' || !correoUsuario.includes('@')) {
+            await registrarLog(req, 'Correo de usuario inválido', 'warn');
+            return res.status(400).json({ error: 'El correo del usuario es requerido y debe ser una dirección de correo válida.' });
+        }
+        if (!telefonoUsuario || typeof telefonoUsuario !== 'string' || telefonoUsuario.trim() === '') {
+            await registrarLog(req, 'Teléfono de usuario inválido', 'warn');
+            return res.status(400).json({ error: 'El teléfono del usuario es requerido y debe ser una cadena no vacía.' });
+        }
+        if (!contrasenaUsuario || typeof contrasenaUsuario !== 'string' || contrasenaUsuario.length < 6) {
+            await registrarLog(req, 'Contraseña de usuario inválida', 'warn');
+            return res.status(400).json({ error: 'La contraseña es requerida y debe tener al menos 6 caracteres.' });
+        }
+        if (!['cliente', 'admin', 'otro'].includes(tipoUsuario)) {
+            await registrarLog(req, 'Tipo de usuario inválido', 'warn');
+            return res.status(400).json({ error: 'Tipo de usuario inválido. Debe ser uno de los siguientes: cliente, admin, otro.' });
+        }
+
+        // Verificar si el usuario ya existe
+        const usuarioExistente = await Usuario.findOne({ where: { correoUsuario: correoUsuario } });
+        if (usuarioExistente) {
+            await registrarLog(req, `Error al crear usuario: El usuario con el correo ${correoUsuario} ya existe.`, 'warn');
+            return res.status(400).json({ error: 'El usuario con el correo proporcionado ya existe.' });
+        }
+
+        // Cifrar la contraseña
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(contrasenaUsuario, salt);
 
+        // Crear el nuevo usuario
         const usuario = await Usuario.create({
-            ...rest,
-            contrasenaUsuario: hashedPassword
+            nombreUsuario,
+            apellidoUsuario,
+            edadUsuario,
+            correoUsuario,
+            telefonoUsuario,
+            contrasenaUsuario: hashedPassword,
+            tipoUsuario
         });
 
         // Excluir contrasenaUsuario y tipoUsuario de la respuesta
@@ -23,10 +70,15 @@ exports.createUsuario = async (req, res) => {
         // Registrar creación de usuario
         await registrarLog(req, `Usuario creado: ${JSON.stringify(usuarioResponse)}`, 'info');
 
-        res.json(usuarioResponse);
+        res.status(201).json(usuarioResponse);
     } catch (error) {
+        if (error.name === 'SequelizeValidationError') {
+            await registrarLog(req, `Error de validación al crear usuario: ${error.message}`, 'warn');
+            return res.status(400).json({ error: 'Datos de usuario inválidos. Verifica la información proporcionada.' });
+        }
+
         await registrarLog(req, `Error al crear usuario: ${error.message}`, 'error');
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Error interno del servidor. Por favor, intenta de nuevo más tarde.' });
     }
 };
 

@@ -163,10 +163,6 @@ CREATE TABLE `salas` (
   `cantidadAsientos` int NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
---
--- Volcado de datos para la tabla `salas`
---
-
 INSERT INTO `salas` (`idSala`, `nombreSala`, `cantidadAsientos`) VALUES
 (1, 'Sala 1', 60),
 (2, 'Sala 2', 75),
@@ -363,3 +359,74 @@ FROM
     asientos a
 JOIN 
     salas s ON a.idSalaAsiento = s.idSala;
+
+
+CREATE OR REPLACE VIEW vista_ingresos_totales_por_dia AS
+SELECT 
+    DATE(b.fechaReserva) AS fecha, 
+    SUM(p.precioBoleto) AS ingresos_totales
+FROM 
+    boletos b
+JOIN 
+    peliculas p ON b.idPelicula = p.idPelicula
+GROUP BY 
+    fecha;
+
+CREATE OR REPLACE VIEW vista_usuarios_mas_activos AS
+SELECT 
+    u.nombreUsuario, 
+    u.apellidoUsuario, 
+    COUNT(b.idBoleto) AS total_boletos
+FROM 
+    usuarios u
+JOIN 
+    pagos p ON u.idUsuario = p.idUsuario
+JOIN 
+    boletos b ON p.idCompra = b.idPago
+GROUP BY 
+    u.idUsuario
+ORDER BY 
+    total_boletos DESC;
+
+CREATE OR REPLACE VIEW vista_asientos_disponibles_por_sala_horario AS
+SELECT 
+    s.nombreSala, 
+    h.horaProgramada, 
+    a.filaAsiento, 
+    a.numeroAsiento
+FROM 
+    salas s
+JOIN 
+    asientos a ON s.idSala = a.idSalaAsiento
+JOIN 
+    boletos b ON a.idAsiento = b.idAsientoReservado
+RIGHT JOIN 
+    horarios h ON b.idHorario = h.idHorario
+WHERE 
+    b.idBoleto IS NULL;
+
+CREATE OR REPLACE VIEW vista_estadisticas_salas AS
+SELECT 
+    s.nombreSala, 
+    COUNT(b.idBoleto) AS total_boletos, 
+    SUM(p.precioBoleto) AS ingresos_totales
+FROM 
+    salas s
+JOIN 
+    boletos b ON s.idSala = b.idSala
+JOIN 
+    peliculas p ON b.idPelicula = p.idPelicula
+GROUP BY 
+    s.nombreSala;
+
+CREATE OR REPLACE VIEW vista_estadisticas_peliculas AS
+SELECT 
+    p.nombrePelicula, 
+    COUNT(b.idBoleto) AS total_boletos, 
+    SUM(p.precioBoleto) AS ingresos_totales
+FROM 
+    peliculas p
+JOIN 
+    boletos b ON p.idPelicula = b.idPelicula
+GROUP BY 
+    p.nombrePelicula;

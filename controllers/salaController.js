@@ -2,7 +2,7 @@ const PDFDocument = require('pdfkit');
 const Sala = require('../models/Sala');
 const Asiento = require('../models/Asiento');
 const { Op } = require('sequelize');
-const { registrarLog } = require('../middleware/logs'); // Asegúrate de tener esta ruta
+const registrarLog = require('../middleware/logs'); // Asegúrate de tener esta ruta
 
 // Crear una nueva sala
 exports.createSala = async (req, res) => {
@@ -11,17 +11,17 @@ exports.createSala = async (req, res) => {
     try {
         // Validar entrada
         if (!nombreSala || typeof nombreSala !== 'string' || nombreSala.trim() === '') {
-            registrarLog('createSala', req, { message: 'Nombre de sala inválido.' }, 'warn');
+            registrarLog(req, 'createSala', { message: 'Nombre de sala inválido.' }, 'warn');
             return res.status(400).json({ message: 'El nombre de la sala es requerido y debe ser una cadena de texto no vacía.' });
         }
 
         if (cantidadFilas <= 0 || maxAsientosPorFila <= 0) {
-            registrarLog('createSala', req, { message: 'Cantidad de filas o asientos por fila inválidos.' }, 'warn');
+            registrarLog(req, 'createSala', { message: 'Cantidad de filas o asientos por fila inválidos.' }, 'warn');
             return res.status(400).json({ message: 'La cantidad de filas y el máximo de asientos por fila deben ser números mayores a 0.' });
         }
 
         if (isNaN(cantidadAsientos) || cantidadAsientos <= 0) {
-            registrarLog('createSala', req, { message: 'Cantidad de asientos inválida.' }, 'warn');
+            registrarLog(req, 'createSala', { message: 'Cantidad de asientos inválida.' }, 'warn');
             return res.status(400).json({ message: 'La cantidad de asientos debe ser un número mayor a 0.' });
         }
 
@@ -30,20 +30,20 @@ exports.createSala = async (req, res) => {
 
         // Verificar que la cantidad de asientos ingresados coincida con la cantidad calculada
         if (cantidadAsientos !== cantidadAsientosEsperados) {
-            registrarLog('createSala', req, { message: `Cantidad de asientos no coincide: esperada ${cantidadAsientosEsperados}, proporcionada ${cantidadAsientos}` }, 'warn');
+            registrarLog(req, 'createSala', { message: `Cantidad de asientos no coincide: esperada ${cantidadAsientosEsperados}, proporcionada ${cantidadAsientos}` }, 'warn');
             return res.status(400).json({ message: `La cantidad de asientos ingresados (${cantidadAsientos}) no coincide con la cantidad calculada (${cantidadAsientosEsperados}).` });
         }
 
         // Verificar que la cantidad total de asientos no exceda el máximo permitido (500)
         if (cantidadAsientos > 500) {
-            registrarLog('createSala', req, { message: 'Cantidad de asientos excede el máximo permitido de 500.' }, 'warn');
+            registrarLog(req, 'createSala', { message: 'Cantidad de asientos excede el máximo permitido de 500.' }, 'warn');
             return res.status(400).json({ message: 'La cantidad de asientos no puede exceder el máximo permitido de 500.' });
         }
 
         // Verificar si la sala ya existe
         const salaExistente = await Sala.findOne({ where: { nombreSala } });
         if (salaExistente) {
-            registrarLog('createSala', req, { message: `Sala ya existente: ${nombreSala}` }, 'warn');
+            registrarLog(req, 'createSala', { message: `Sala ya existente: ${nombreSala}` }, 'warn');
             return res.status(400).json({ message: `Ya existe una sala con el nombre "${nombreSala}". Elige un nombre diferente.` });
         }
 
@@ -72,10 +72,10 @@ exports.createSala = async (req, res) => {
         // Crear los asientos en la base de datos
         await Asiento.bulkCreate(asientos);
 
-        registrarLog('createSala', req, { sala }, 'info');
+        registrarLog(req, 'createSala', { sala }, 'info');
         res.status(201).json(sala);
     } catch (error) {
-        registrarLog('createSala', req, { error: error.message }, 'error');
+        registrarLog(req, 'createSala', { error: error.message }, 'error');
         res.status(500).json({ message: 'Error en el servidor. Por favor, intenta de nuevo más tarde.' });
     }
 };
@@ -124,7 +124,7 @@ exports.updateSalas = async (req, res) => {
     try {
         // Validar ID de la sala
         if (!idSala) {
-            registrarLog('updateSalas', req, { message: 'ID de sala no proporcionado' }, 'warn');
+            registrarLog(req, 'updateSalas', { message: 'ID de sala no proporcionado' }, 'warn');
             return res.status(400).json({ message: 'ID de la sala es requerido para la actualización' });
         }
 
@@ -137,7 +137,7 @@ exports.updateSalas = async (req, res) => {
         });
 
         if (asientosOcupados > 0) {
-            registrarLog('updateSalas', req, { idSala, message: 'Sala no actualizable debido a asientos ocupados' }, 'warn');
+            registrarLog(req, 'updateSalas', { idSala, message: 'Sala no actualizable debido a asientos ocupados' }, 'warn');
             return res.status(400).json({ message: 'No se puede actualizar la sala porque hay asientos ocupados.' });
         }
 
@@ -146,7 +146,7 @@ exports.updateSalas = async (req, res) => {
             const cantidadCalculada = filas * maxAsientosPorFila;
 
             if (cantidadAsientos !== cantidadCalculada) {
-                registrarLog('updateSalas', req, { idSala, cantidadAsientos, cantidadCalculada, message: 'Cantidad de asientos no coincide' }, 'warn');
+                registrarLog(req, 'updateSalas', { idSala, cantidadAsientos, cantidadCalculada, message: 'Cantidad de asientos no coincide' }, 'warn');
                 return res.status(400).json({
                     message: `La cantidad de asientos ingresados (${cantidadAsientos}) no coincide con la cantidad calculada (${cantidadCalculada}).`
                 });
@@ -157,28 +157,28 @@ exports.updateSalas = async (req, res) => {
         const updateFields = {};
         if (nombreSala) {
             if (nombreSala.trim() === '') {
-                registrarLog('updateSalas', req, { idSala, nombreSala, message: 'Nombre de sala vacío' }, 'warn');
+                registrarLog(req, 'updateSalas', { idSala, nombreSala, message: 'Nombre de sala vacío' }, 'warn');
                 return res.status(400).json({ message: 'El nombre de la sala no puede estar vacío' });
             }
             updateFields.nombreSala = nombreSala;
         }
         if (cantidadAsientos) {
             if (cantidadAsientos <= 0) {
-                registrarLog('updateSalas', req, { idSala, cantidadAsientos, message: 'Cantidad de asientos no válida' }, 'warn');
+                registrarLog(req, 'updateSalas', { idSala, cantidadAsientos, message: 'Cantidad de asientos no válida' }, 'warn');
                 return res.status(400).json({ message: 'La cantidad de asientos debe ser un número positivo' });
             }
             updateFields.cantidadAsientos = cantidadAsientos;
         }
         if (filas) {
             if (filas <= 0) {
-                registrarLog('updateSalas', req, { idSala, filas, message: 'Cantidad de filas no válida' }, 'warn');
+                registrarLog(req, 'updateSalas', { idSala, filas, message: 'Cantidad de filas no válida' }, 'warn');
                 return res.status(400).json({ message: 'La cantidad de filas debe ser un número positivo' });
             }
             updateFields.filas = filas;
         }
         if (maxAsientosPorFila) {
             if (maxAsientosPorFila <= 0) {
-                registrarLog('updateSalas', req, { idSala, maxAsientosPorFila, message: 'Número máximo de asientos por fila no válido' }, 'warn');
+                registrarLog(req, 'updateSalas', { idSala, maxAsientosPorFila, message: 'Número máximo de asientos por fila no válido' }, 'warn');
                 return res.status(400).json({ message: 'El número máximo de asientos por fila debe ser un número positivo' });
             }
             updateFields.maxAsientosPorFila = maxAsientosPorFila;
@@ -204,17 +204,18 @@ exports.updateSalas = async (req, res) => {
                 }
             }
 
-            registrarLog('updateSalas', req, { idSala, updateFields }, 'info');
+            registrarLog(req, 'updateSalas', { idSala, updateFields }, 'info');
             res.json({ message: 'Sala actualizada exitosamente' });
         } else {
-            registrarLog('updateSalas', req, { idSala, message: 'Sala no encontrada' }, 'warn');
+            registrarLog(req, 'updateSalas', { idSala, message: 'Sala no encontrada' }, 'warn');
             res.status(404).json({ message: 'Sala no encontrada' });
         }
     } catch (error) {
-        registrarLog('updateSalas', req, { idSala, error: error.message }, 'error');
+        registrarLog(req, 'updateSalas', { idSala, error: error.message }, 'error');
         res.status(500).json({ error: error.message });
     }
 };
+
 
 // Eliminar una sala
 exports.deleteSala = async (req, res) => {
@@ -223,14 +224,14 @@ exports.deleteSala = async (req, res) => {
     try {
         // Validar que se ha proporcionado el ID de la sala
         if (!idSala) {
-            registrarLog('deleteSala', req, { message: 'ID de sala no proporcionado' }, 'warn');
+            registrarLog(req, 'deleteSala', { message: 'ID de sala no proporcionado' }, 'warn');
             return res.status(400).json({ message: 'ID de la sala es requerido para la eliminación.' });
         }
 
         // Verificar si la sala existe
         const sala = await Sala.findByPk(idSala);
         if (!sala) {
-            registrarLog('deleteSala', req, { idSala, message: 'Sala no encontrada' }, 'warn');
+            registrarLog(req, 'deleteSala', { idSala, message: 'Sala no encontrada' }, 'warn');
             return res.status(404).json({ message: 'Sala no encontrada.' });
         }
 
@@ -241,7 +242,7 @@ exports.deleteSala = async (req, res) => {
         const todosDisponibles = asientos.every(asiento => asiento.estadoAsiento === 'disponible');
 
         if (!todosDisponibles) {
-            registrarLog('deleteSala', req, { idSala, message: 'No se puede eliminar la sala debido a asientos ocupados' }, 'warn');
+            registrarLog(req, 'deleteSala', { idSala, message: 'No se puede eliminar la sala debido a asientos ocupados' }, 'warn');
             return res.status(400).json({ message: 'No se puede eliminar la sala porque algunos asientos están ocupados.' });
         }
 
@@ -251,13 +252,14 @@ exports.deleteSala = async (req, res) => {
         // Eliminar la sala
         await Sala.destroy({ where: { idSala } });
 
-        registrarLog('deleteSala', req, { idSala, message: 'Sala eliminada exitosamente' }, 'info');
+        registrarLog(req, 'deleteSala', { idSala, message: 'Sala eliminada exitosamente' }, 'info');
         res.json({ message: 'Sala eliminada exitosamente.' });
     } catch (error) {
-        registrarLog('deleteSala', req, { idSala, error: error.message }, 'error');
+        registrarLog(req, 'deleteSala', { idSala, error: error.message }, 'error');
         res.status(500).json({ message: 'Error en el servidor. Por favor, intenta de nuevo más tarde.' });
     }
 };
+
 
 // Generar reporte en PDF de las salas
 exports.getSalasPDF = async (req, res) => {
