@@ -37,10 +37,6 @@ exports.createUsuario = async (req, res) => {
             await registrarLog(req, 'Contraseña de usuario inválida', 'warn');
             return res.status(400).json({ error: 'La contraseña es requerida y debe tener al menos 6 caracteres.' });
         }
-        if (!['cliente', 'admin', 'otro'].includes(tipoUsuario)) {
-            await registrarLog(req, 'Tipo de usuario inválido', 'warn');
-            return res.status(400).json({ error: 'Tipo de usuario inválido. Debe ser uno de los siguientes: cliente, admin, otro.' });
-        }
 
         // Verificar si el usuario ya existe
         const usuarioExistente = await Usuario.findOne({ where: { correoUsuario: correoUsuario } });

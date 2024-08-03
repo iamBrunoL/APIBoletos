@@ -80,15 +80,16 @@ exports.createSala = async (req, res) => {
     }
 };
 
-
 // Obtener todas las salas
 exports.getAllSalas = async (req, res) => {
     try {
         const salas = await Sala.findAll();
-        registrarLog('getAllSalas', req, { salasCount: salas.length }, 'info');
+        const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
+        registrarLog('getAllSalas', req, { salasCount: salas.length, userAgent }, 'info');
         res.json(salas);
     } catch (error) {
-        registrarLog('getAllSalas', req, { error: error.message }, 'error');
+        const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
+        registrarLog('getAllSalas', req, { error: error.message, userAgent }, 'error');
         res.status(500).json({ error: error.message });
     }
 };
@@ -104,18 +105,21 @@ exports.getSalas = async (req, res) => {
 
         const salas = await Sala.findAll({ where: searchCriteria });
 
+        const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
         if (salas.length > 0) {
-            registrarLog('getSalas', req, { searchCriteria, resultsCount: salas.length }, 'info');
+            registrarLog('getSalas', req, { searchCriteria, resultsCount: salas.length, userAgent }, 'info');
             res.json(salas);
         } else {
-            registrarLog('getSalas', req, { searchCriteria }, 'warn');
+            registrarLog('getSalas', req, { searchCriteria, userAgent }, 'warn');
             res.status(404).json({ message: 'No se encontraron salas con los criterios proporcionados' });
         }
     } catch (error) {
-        registrarLog('getSalas', req, { error: error.message }, 'error');
+        const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
+        registrarLog('getSalas', req, { error: error.message, userAgent }, 'error');
         res.status(500).json({ error: error.message });
     }
 };
+
 
 // Actualizar salas por múltiples criterios
 exports.updateSalas = async (req, res) => {

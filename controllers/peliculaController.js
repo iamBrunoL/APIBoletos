@@ -1,7 +1,8 @@
 const Pelicula = require('../models/Pelicula');
 const PDFDocument = require('pdfkit');
 const registrarLog = require('../middleware/logs'); // Asegúrate de que la ruta sea correcta
-// Crear una nueva película
+const Horario = require('../models/Horario'); // Asegúrate de importar el modelo de Horario
+
 exports.createPelicula = async (req, res) => {
     const { nombrePelicula, directorPelicula, duracionPelicula, actoresPelicula, clasificacionPelicula, idHorario, precioBoleto } = req.body;
 
@@ -46,6 +47,13 @@ exports.createPelicula = async (req, res) => {
     }
 
     try {
+        // Verificar que el idHorario existe
+        const horarioExistente = await Horario.findByPk(idHorario);
+        if (!horarioExistente) {
+            registrarLog(req, 'createPelicula - error', { error: 'El idHorario proporcionado no existe.' });
+            return res.status(400).json({ error: 'El idHorario proporcionado no existe.' });
+        }
+
         const pelicula = await Pelicula.create({
             nombrePelicula,
             directorPelicula,
@@ -60,10 +68,6 @@ exports.createPelicula = async (req, res) => {
         res.status(201).json(pelicula);
     } catch (error) {
         // Manejar errores específicos de Sequelize
-        if (error.name === 'SequelizeForeignKeyConstraintError') {
-            registrarLog(req, 'createPelicula - error', { error: 'El idHorario proporcionado no existe.' });
-            return res.status(400).json({ error: 'El idHorario proporcionado no existe.' });
-        }
         if (error.name === 'SequelizeValidationError') {
             const errors = error.errors.map(e => e.message);
             registrarLog(req, 'createPelicula - error', { error: errors.join(', ') });
@@ -73,6 +77,7 @@ exports.createPelicula = async (req, res) => {
         res.status(500).json({ error: 'Ocurrió un error al crear la película.' });
     }
 };
+
 
 // Obtener todas las películas
 exports.getAllPeliculas = async (req, res) => {
