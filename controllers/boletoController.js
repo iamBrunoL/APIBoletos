@@ -9,9 +9,10 @@ const jwt = require('jsonwebtoken');
 const PDFDocument = require('pdfkit');
 const QRCode = require('qrcode');
 const registrarLog = require('../middleware/logs'); // Importar la función de registro de logs
+const { Op } = require('sequelize');
 
 exports.createBoleto = async (req, res) => {
-    const { idPelicula, idSala, numeroAsientoReservado, metodoPago } = req.body;
+    const { idPelicula, idSala, asientosReservados, metodoPago } = req.body; // asientosReservados es un array de objetos {numeroAsiento, filaAsiento}
     const token = req.header('Authorization').replace('Bearer ', '');
     const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
 
@@ -19,7 +20,7 @@ exports.createBoleto = async (req, res) => {
         // Obtener la película y su precio
         const pelicula = await Pelicula.findOne({ where: { idPelicula } });
         if (!pelicula) {
-            registrarLog(req, 'ERROR', 'Película no encontrada');
+            await registrarLog('reservarAsientos', req, { message: 'Película no encontrada', usuario: decodedToken.id }, 'warn');
             return res.status(400).json({ message: 'Película no encontrada' });
         }
 
@@ -27,10 +28,10 @@ exports.createBoleto = async (req, res) => {
         const precioBoleto = pelicula.precioBoleto;
         const nombrePelicula = pelicula.nombrePelicula;
 
-        // Obtener la hora programada y el turno del horario
+        // Obtener el horario
         const horario = await Horario.findOne({ where: { idHorario } });
         if (!horario) {
-            registrarLog(req, 'ERROR', 'Horario no encontrado');
+            await registrarLog('reservarAsientos', req, { message: 'Horario no encontrado', usuario: decodedToken.id }, 'warn');
             return res.status(400).json({ message: 'Horario no encontrado' });
         }
 
@@ -38,25 +39,38 @@ exports.createBoleto = async (req, res) => {
         const fechaDeEmision = horario.fechaDeEmision;
         const turno = horario.turno;
 
-        // Verificar que el asiento está disponible en la sala correcta
-        const asiento = await Asiento.findOne({
-            where: {
-                numeroAsiento: numeroAsientoReservado,
-                idSalaAsiento: idSala,
-                estadoAsiento: 'disponible'
+        // Verificar la disponibilidad de los asientos
+        let asientosDisponibles = [];
+        let asientosOcupados = [];
+        for (let asiento of asientosReservados) {
+            const asientoDB = await Asiento.findOne({
+                where: {
+                    numeroAsiento: asiento.numeroAsiento,
+                    filaAsiento: asiento.filaAsiento,
+                    idSalaAsiento: idSala,
+                    estadoAsiento: 'disponible'
+                }
+            });
+            if (asientoDB) {
+                asientosDisponibles.push(asientoDB);
+            } else {
+                asientosOcupados.push(asiento);
             }
-        });
-        if (!asiento) {
-            registrarLog(req, 'ERROR', 'Asiento no disponible');
-            return res.status(400).json({ message: 'Asiento no disponible' });
         }
 
-        const filaAsiento = asiento.filaAsiento;
+        // Si hay asientos ocupados, devolver error con detalles
+        if (asientosOcupados.length > 0) {
+            await registrarLog('reservarAsientos', req, { message: 'Algunos asientos no están disponibles', usuario: decodedToken.id }, 'warn');
+            return res.status(400).json({ 
+                message: 'Algunos asientos no están disponibles', 
+                asientosOcupados 
+            });
+        }
 
         // Obtener la sala
         const sala = await Sala.findOne({ where: { idSala } });
         if (!sala) {
-            registrarLog(req, 'ERROR', 'Sala no encontrada');
+            await registrarLog('reservarAsientos', req, { message: 'Sala no encontrada', usuario: decodedToken.id }, 'warn');
             return res.status(400).json({ message: 'Sala no encontrada' });
         }
 
@@ -64,72 +78,95 @@ exports.createBoleto = async (req, res) => {
 
         // Obtener el usuario
         const usuario = await Usuario.findByPk(decodedToken.id);
+        if (!usuario) {
+            await registrarLog('reservarAsientos', req, { message: 'Usuario no encontrado', usuario: decodedToken.id }, 'warn');
+            return res.status(400).json({ message: 'Usuario no encontrado' });
+        }
         const nombreUsuario = usuario.nombreUsuario;
 
-        // Crear el registro de pago con el precio de la película
+        // Crear el registro de pago con el precio total de los boletos
+        const totalPago = asientosDisponibles.length * precioBoleto;
         const pago = await Pago.create({
             idUsuario: usuario.idUsuario,
-            cantidadPago: precioBoleto,
+            cantidadPago: totalPago,
             metodoPago: metodoPago
         });
 
         // Obtener la fecha actual para fechaReserva
         const fechaReserva = new Date();
 
-        // Crear el boleto
-        const boleto = await Boleto.create({
-            idPelicula,
-            idHorario,
-            idSala,
-            idPago: pago.idCompra,
-            idAsientoReservado: asiento.idAsiento,
-            fechaReserva
-        });
+        // Crear los boletos y actualizar el estado de los asientos
+        let boletosCreados = [];
+        let asientosOrdenados = {};
 
-        // Actualizar el estado del asiento
-        await Asiento.update({ estadoAsiento: 'ocupado' }, { where: { idAsiento: asiento.idAsiento } });
+        for (let asiento of asientosDisponibles) {
+            // Crear el boleto
+            const boleto = await Boleto.create({
+                idPelicula,
+                idHorario,
+                idSala,
+                idPago: pago.idCompra,
+                idAsientoReservado: asiento.idAsiento,
+                fechaReserva
+            });
 
-        // Datos de la respuesta
-        const response = {
-            idBoleto: boleto.idBoleto,
-            idPago: boleto.idPago,
-            nombreUsuario: nombreUsuario,
-            nombrePelicula: nombrePelicula,
-            horaProgramada: horaProgramada,
-            nombreSala: nombreSala,
-            numeroAsientoReservado: numeroAsientoReservado,
-            filaAsiento: filaAsiento,
-            fechaReserva: boleto.fechaReserva,
-            fechaDeEmision: fechaDeEmision,
-            turno: turno // Incluir el turno
-        };
+            // Actualizar el estado del asiento
+            await Asiento.update({ estadoAsiento: 'ocupado' }, { where: { idAsiento: asiento.idAsiento } });
 
-        // Generar el QR con la información especificada
+            // Agregar información del asiento al objeto asientosOrdenados
+            if (!asientosOrdenados[asiento.filaAsiento]) {
+                asientosOrdenados[asiento.filaAsiento] = [];
+            }
+            asientosOrdenados[asiento.filaAsiento].push(asiento.numeroAsiento);
+
+            boletosCreados.push({
+                idBoleto: boleto.idBoleto,
+                idPago: boleto.idPago,
+                nombreUsuario: nombreUsuario,
+                nombrePelicula: nombrePelicula,
+                horaProgramada: horaProgramada,
+                nombreSala: nombreSala,
+                numeroAsientoReservado: asiento.numeroAsiento,
+                filaAsiento: asiento.filaAsiento,
+                fechaReserva: boleto.fechaReserva,
+                fechaDeEmision: fechaDeEmision,
+                turno: turno
+            });
+        }
+
+        // Formatear la lista de asientos para el código QR
+        let asientosText = '';
+        for (let fila in asientosOrdenados) {
+            let asientosFila = asientosOrdenados[fila].sort((a, b) => a - b);
+            asientosText += asientosFila.map(num => `${fila}-${num}`).join(', ') + ', ';
+        }
+        asientosText = asientosText.slice(0, -2); // Eliminar la última coma y espacio
+
+        // Generar el QR con la información combinada
         const qrCodeData = `
             Cine Fox
-            Numero de Boleto: ${boleto.idBoleto}.
-            Numero de transaccion: ${boleto.idPago}
-            Fecha de compra: ${boleto.fechaReserva.toISOString().split('T')[0]}.
+            Numero de transaccion: ${pago.idCompra}
+            Fecha de compra: ${fechaReserva.toISOString().split('T')[0]}.
             Usuario: ${nombreUsuario}.
             Pelicula: ${nombrePelicula}.
             Fecha de emision: ${fechaDeEmision}.
             Hora de emision: ${horaProgramada}.
             Turno: ${turno}.
             Sala: ${nombreSala}.
-            Fila de asiento: ${filaAsiento}.
-            Numero de asiento: ${numeroAsientoReservado}.
-            Gracias por su preferencia.
-            
+            Asientos reservados: ${asientosText}
         `;
         const qrCode = await QRCode.toDataURL(qrCodeData);
 
         // Incluir el QR en la respuesta
-        response.qrCode = qrCode;
+        boletosCreados.push({
+            qrCode: qrCode
+        });
 
-        registrarLog(req, 'INFO', `Boleto creado con éxito: ${boleto.idBoleto}`);
-        res.json(response);
+        // Preparar la respuesta con los boletos creados
+        await registrarLog('reservarAsientos', req, { message: `Asientos reservados con éxito: ${boletosCreados.map(b => b.idBoleto).join(', ')}`, usuario: usuario.idUsuario }, 'info');
+        res.json(boletosCreados);
     } catch (error) {
-        registrarLog(req, 'ERROR', `Error al crear boleto: ${error.message}`);
+        await registrarLog('reservarAsientos', req, { message: `Error al reservar asientos: ${error.message}`, usuario: decodedToken.id }, 'error');
         res.status(500).json({ error: error.message });
     }
 };
