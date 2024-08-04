@@ -60,6 +60,7 @@ exports.createPelicula = async (req, res) => {
 };
 
 
+
 // Obtener todas las películas
 exports.getAllPeliculas = async (req, res) => {
     try {

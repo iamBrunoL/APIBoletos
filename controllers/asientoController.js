@@ -82,6 +82,7 @@ exports.updateAsientos = async (req, res) => {
     try {
         const { idAsiento, filaAsiento, idSalaAsiento, estadoAsiento } = req.body;
 
+        // Validar estado del asiento
         if (!['disponible', 'ocupado'].includes(estadoAsiento)) {
             await registrarLog(req, 'Intento de actualizar un asiento con estado no válido');
             return res.status(400).json({ message: 'Estado no válido. Debe ser "disponible" o "ocupado".' });
@@ -89,6 +90,7 @@ exports.updateAsientos = async (req, res) => {
 
         let searchCriteria = {};
 
+        // Determinar criterios de búsqueda
         if (idAsiento) {
             searchCriteria = { idAsiento };
         } else if (filaAsiento && idSalaAsiento) {
@@ -98,20 +100,31 @@ exports.updateAsientos = async (req, res) => {
             return res.status(400).json({ message: 'Debe proporcionar el ID del asiento o la fila y la sala para la actualización.' });
         }
 
-        const [updated] = await Asiento.update({ estadoAsiento }, { where: searchCriteria });
+        // Buscar el asiento actual
+        const asiento = await Asiento.findOne({ where: searchCriteria });
 
-        if (updated) {
-            await registrarLog(req, 'Asiento actualizado exitosamente');
-            res.json({ message: 'Estado del asiento actualizado exitosamente' });
-        } else {
+        if (!asiento) {
             await registrarLog(req, 'Asiento no encontrado para la actualización');
-            res.status(404).json({ message: 'Asiento no encontrado' });
+            return res.status(404).json({ message: 'Asiento no encontrado' });
         }
+
+        // Verificar si el estado es el mismo que el actual
+        if (asiento.estadoAsiento === estadoAsiento) {
+            await registrarLog(req, 'Intento de actualizar el asiento con el mismo estado');
+            return res.status(400).json({ message: 'El estado del asiento es el mismo que el actual. No se realizó ninguna actualización.' });
+        }
+
+        // Actualizar el estado del asiento
+        await Asiento.update({ estadoAsiento }, { where: searchCriteria });
+
+        await registrarLog(req, 'Asiento actualizado exitosamente');
+        res.json({ message: 'Estado del asiento actualizado exitosamente' });
     } catch (error) {
         await registrarLog(req, `Error al actualizar asiento: ${error.message}`);
         res.status(500).json({ error: error.message });
     }
 };
+
 
 exports.deleteAsiento = async (req, res) => {
     try {
