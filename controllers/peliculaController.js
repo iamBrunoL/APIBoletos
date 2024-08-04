@@ -1,51 +1,46 @@
+const { Op } = require('sequelize');
 const Pelicula = require('../models/Pelicula');
+const Horario = require('../models/Horario'); 
 const PDFDocument = require('pdfkit');
 const registrarLog = require('../middleware/logs'); // Asegúrate de que la ruta sea correcta
+
 // Crear una nueva película
 exports.createPelicula = async (req, res) => {
     const { nombrePelicula, directorPelicula, duracionPelicula, actoresPelicula, clasificacionPelicula, idHorario, precioBoleto } = req.body;
 
-    // Registrar la solicitud inicial
-    registrarLog(req, 'createPelicula - datos recibidos', { nombrePelicula, directorPelicula, duracionPelicula, actoresPelicula, clasificacionPelicula, idHorario, precioBoleto });
+    // Verificar que req.headers está definido
+    if (!req.headers) {
+        return res.status(500).json({ error: 'No se puede registrar el log. Encabezados no disponibles.' });
+    }
 
-    // Definir las clasificaciones permitidas
-    const clasificacionesPermitidas = ['G', 'PG', 'PG-13', 'R', 'NC-17'];
+    // Registrar la solicitud inicial
+    registrarLog('createPelicula - datos recibidos', req, { nombrePelicula, directorPelicula, duracionPelicula, actoresPelicula, clasificacionPelicula, idHorario, precioBoleto });
 
     // Validar los datos requeridos
-    if (!nombrePelicula) {
-        registrarLog(req, 'createPelicula - error', { error: 'El campo nombrePelicula es requerido.' });
-        return res.status(400).json({ error: 'El campo nombrePelicula es requerido.' });
-    }
-    if (!directorPelicula) {
-        registrarLog(req, 'createPelicula - error', { error: 'El campo directorPelicula es requerido.' });
-        return res.status(400).json({ error: 'El campo directorPelicula es requerido.' });
-    }
-    if (!duracionPelicula) {
-        registrarLog(req, 'createPelicula - error', { error: 'El campo duracionPelicula es requerido.' });
-        return res.status(400).json({ error: 'El campo duracionPelicula es requerido.' });
-    }
-    if (!actoresPelicula) {
-        registrarLog(req, 'createPelicula - error', { error: 'El campo actoresPelicula es requerido.' });
-        return res.status(400).json({ error: 'El campo actoresPelicula es requerido.' });
-    }
-    if (!clasificacionPelicula) {
-        registrarLog(req, 'createPelicula - error', { error: 'El campo clasificacionPelicula es requerido.' });
-        return res.status(400).json({ error: 'El campo clasificacionPelicula es requerido.' });
-    }
-    if (!clasificacionesPermitidas.includes(clasificacionPelicula)) {
-        registrarLog(req, 'createPelicula - error', { error: `El campo clasificacionPelicula debe ser uno de los siguientes: ${clasificacionesPermitidas.join(', ')}.` });
-        return res.status(400).json({ error: `El campo clasificacionPelicula debe ser uno de los siguientes: ${clasificacionesPermitidas.join(', ')}.` });
-    }
-    if (!idHorario) {
-        registrarLog(req, 'createPelicula - error', { error: 'El campo idHorario es requerido.' });
-        return res.status(400).json({ error: 'El campo idHorario es requerido.' });
-    }
-    if (!precioBoleto) {
-        registrarLog(req, 'createPelicula - error', { error: 'El campo precioBoleto es requerido.' });
-        return res.status(400).json({ error: 'El campo precioBoleto es requerido.' });
+    if (!nombrePelicula || !directorPelicula || !duracionPelicula || !actoresPelicula || !clasificacionPelicula || !idHorario || !precioBoleto) {
+        const errorMsg = 'Todos los campos son obligatorios.';
+        registrarLog('createPelicula - error', req, { error: errorMsg });
+        return res.status(400).json({ error: errorMsg });
     }
 
     try {
+        // Verificar si ya existe una película con el mismo nombre y director
+        const peliculaExistente = await Pelicula.findOne({
+            where: {
+                nombrePelicula,
+                directorPelicula,
+                clasificacionPelicula,
+                idHorario
+            }
+        });
+
+        if (peliculaExistente) {
+            const warningMsg = 'La película ya existe con el mismo nombre, director y horario. Intente cambiando el horario';
+            registrarLog('createPelicula - advertencia', req, { warning: warningMsg });
+            return res.status(409).json({ message: warningMsg });
+        }
+
+        // Crear nueva película
         const pelicula = await Pelicula.create({
             nombrePelicula,
             directorPelicula,
@@ -56,23 +51,14 @@ exports.createPelicula = async (req, res) => {
             precioBoleto
         });
 
-        registrarLog(req, 'createPelicula - éxito', { pelicula });
+        registrarLog('createPelicula - éxito', req, { pelicula });
         res.status(201).json(pelicula);
     } catch (error) {
-        // Manejar errores específicos de Sequelize
-        if (error.name === 'SequelizeForeignKeyConstraintError') {
-            registrarLog(req, 'createPelicula - error', { error: 'El idHorario proporcionado no existe.' });
-            return res.status(400).json({ error: 'El idHorario proporcionado no existe.' });
-        }
-        if (error.name === 'SequelizeValidationError') {
-            const errors = error.errors.map(e => e.message);
-            registrarLog(req, 'createPelicula - error', { error: errors.join(', ') });
-            return res.status(400).json({ error: errors.join(', ') });
-        }
-        registrarLog(req, 'createPelicula - error', { error: 'Ocurrió un error al crear la película.' });
+        registrarLog('createPelicula - error', req, { error: error.message, stack: error.stack });
         res.status(500).json({ error: 'Ocurrió un error al crear la película.' });
     }
 };
+
 
 // Obtener todas las películas
 exports.getAllPeliculas = async (req, res) => {

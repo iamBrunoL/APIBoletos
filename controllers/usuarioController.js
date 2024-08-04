@@ -85,14 +85,19 @@ exports.createUsuario = async (req, res) => {
 // Obtener todos los usuarios
 exports.getAllUsuarios = async (req, res) => {
     try {
+        // Verificar que req.headers está definido
+        if (!req.headers) {
+            return res.status(500).json({ error: 'No se puede registrar el log. Encabezados no disponibles.' });
+        }
+
         const usuarios = await Usuario.findAll();
 
         // Registrar consulta de todos los usuarios
-        await registrarLog(req, `Usuarios obtenidos: ${usuarios.length} usuarios`, 'info');
+        await registrarLog('getAllUsuarios', req, { usuariosCount: usuarios.length }, 'info');
 
         res.json(usuarios);
     } catch (error) {
-        await registrarLog(req, `Error al obtener usuarios: ${error.message}`, 'error');
+        await registrarLog('getAllUsuarios', req, { error: error.message }, 'error');
         res.status(500).json({ error: error.message });
     }
 };
@@ -100,6 +105,11 @@ exports.getAllUsuarios = async (req, res) => {
 // Buscar usuarios por múltiples criterios
 exports.getUsuarios = async (req, res) => {
     try {
+        // Verificar que req.headers está definido
+        if (!req.headers) {
+            return res.status(500).json({ error: 'No se puede registrar el log. Encabezados no disponibles.' });
+        }
+
         const { idUsuario, correoUsuario, tipoUsuario } = req.query;
 
         const searchCriteria = {};
@@ -111,18 +121,19 @@ exports.getUsuarios = async (req, res) => {
 
         if (usuarios.length > 0) {
             // Registrar búsqueda exitosa
-            await registrarLog(req, `Usuarios encontrados por criterios: ${JSON.stringify(searchCriteria)}`, 'info');
+            await registrarLog('getUsuarios', req, { searchCriteria, resultsCount: usuarios.length }, 'info');
             res.json(usuarios);
         } else {
             // Registrar búsqueda sin resultados
-            await registrarLog(req, `No se encontraron usuarios con los criterios: ${JSON.stringify(searchCriteria)}`, 'warn');
+            await registrarLog('getUsuarios', req, { searchCriteria }, 'warn');
             res.status(404).json({ message: 'No se encontraron usuarios con los criterios proporcionados' });
         }
     } catch (error) {
-        await registrarLog(req, `Error al buscar usuarios: ${error.message}`, 'error');
+        await registrarLog('getUsuarios', req, { error: error.message }, 'error');
         res.status(500).json({ error: error.message });
     }
 };
+
 
 // Actualizar un usuario
 exports.updateUsuario = async (req, res) => {
@@ -203,60 +214,64 @@ exports.deleteUsuario = async (req, res) => {
     }
 };
 
-
 exports.loginUsuario = async (req, res) => {
     try {
         const { correoUsuario, contrasenaUsuario } = req.body;
         const usuario = await Usuario.findOne({ where: { correoUsuario } });
 
         if (!usuario) {
-            // Registrar intento de login fallido
-            await registrarLog(req, 'Intento de inicio de sesión fallido - Usuario no encontrado');
+            // Registrar intento de login fallido con correo proporcionado
+            await registrarLog('loginUsuario', req, { message: 'Intento de inicio de sesión fallido - Usuario no encontrado', usuario: correoUsuario }, 'warn');
             return res.status(404).json({ message: 'Usuario no encontrado' });
         }
 
         const isMatch = await bcrypt.compare(contrasenaUsuario, usuario.contrasenaUsuario);
 
         if (!isMatch) {
-            // Registrar intento de login fallido
-            await registrarLog(req, 'Intento de inicio de sesión fallido - Contraseña incorrecta');
+            // Registrar intento de login fallido con ID de usuario
+            await registrarLog('loginUsuario', req, { message: 'Intento de inicio de sesión fallido - Contraseña incorrecta', usuario: usuario.idUsuario }, 'warn');
             return res.status(400).json({ message: 'Contraseña incorrecta' });
         }
 
         const payload = { id: usuario.idUsuario, tipo: usuario.tipoUsuario };
         const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-        // Registrar inicio de sesión exitoso
-        await registrarLog(req, 'Inicio de sesión exitoso');
+        // Registrar inicio de sesión exitoso con ID de usuario
+        await registrarLog('loginUsuario', req, { message: 'Inicio de sesión exitoso', usuario: usuario.idUsuario }, 'info');
 
         res.json({ token });
     } catch (error) {
+        await registrarLog('loginUsuario', req, { error: error.message }, 'error');
         res.status(500).json({ error: error.message });
     }
 };
-
 exports.logoutUsuario = async (req, res) => {
     try {
         const token = req.headers['authorization'];
         if (token) {
+            const tokenWithoutBearer = token.replace('Bearer ', '');
+            
             // Suponiendo que la función blacklistToken marca el token como inválido o lo guarda en una lista negra
-            blacklistToken(token);
+            blacklistToken(tokenWithoutBearer);
 
             // Extraer el ID de usuario del token para registrar el logout
-            const decoded = jwt.decode(token);
-            const usuario = decoded ? decoded.id : 'desconocido';
+            const decoded = jwt.decode(tokenWithoutBearer);
+            const usuarioId = decoded ? decoded.id : 'desconocido';
 
-            // Registrar cierre de sesión
-            await registrarLog(req, `Cierre de sesión del usuario ${usuario}`);
+            // Registrar cierre de sesión con ID de usuario
+            await registrarLog('logoutUsuario', req, { message: `Cierre de sesión del usuario ${usuarioId}`, usuario: usuarioId }, 'info');
 
             res.json({ message: 'Sesión cerrada correctamente' });
         } else {
+            await registrarLog('logoutUsuario', req, { message: 'Token no proporcionado para el cierre de sesión', usuario: 'desconocido' }, 'warn');
             res.status(400).json({ message: 'Token no proporcionado' });
         }
     } catch (error) {
+        await registrarLog('logoutUsuario', req, { error: error.message, usuario: 'desconocido' }, 'error');
         res.status(500).json({ error: error.message });
     }
 };
+
 
 exports.getUsuariosPDF = async (req, res) => {
     try {

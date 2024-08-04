@@ -117,6 +117,7 @@ exports.getSalas = async (req, res) => {
     }
 };
 
+
 // Actualizar salas por múltiples criterios
 exports.updateSalas = async (req, res) => {
     const { idSala, nombreSala, cantidadAsientos, filas, maxAsientosPorFila } = req.body;
