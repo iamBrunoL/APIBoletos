@@ -63,8 +63,8 @@ exports.createUsuario = async (req, res) => {
         // Excluir contrasenaUsuario y tipoUsuario de la respuesta
         const { contrasenaUsuario: _, tipoUsuario: __, ...usuarioResponse } = usuario.dataValues;
 
-        // Registrar creación de usuario
-        await registrarLog(req, `Usuario creado: ${JSON.stringify(usuarioResponse)}`, 'info');
+        // Registrar inicio de sesión exitoso con ID de usuario
+        await registrarLog('RegisterUsuario', req, { message: 'Registro de usuario exitoso', usuario: usuario.idUsuario }, 'info');
 
         res.status(201).json(usuarioResponse);
     } catch (error) {
