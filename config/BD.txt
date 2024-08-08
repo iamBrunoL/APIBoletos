@@ -119,6 +119,12 @@ INSERT INTO `horarios` (`idHorario`, `horaProgramada`, `turno`, `fechaDeEmision`
 (7, '21:00:00', 'noche', '2024-07-25'),
 (8, '23:00:00', 'noche', '2024-07-31');
 
+CREATE TABLE `dulceria` (
+  `idProducto` int AUTO_INCREMENT PRIMARY KEY,
+  `nombreProducto` varchar(50) NOT NULL,
+  `precioProducto` int NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
 CREATE TABLE logs (
   idLog INT AUTO_INCREMENT PRIMARY KEY,
   usuario VARCHAR(100) NOT NULL,
