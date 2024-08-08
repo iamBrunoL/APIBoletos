@@ -229,7 +229,20 @@ exports.loginUsuario = async (req, res) => {
             return res.status(400).json({ message: 'Contraseña incorrecta' });
         }
 
-        const payload = { id: usuario.idUsuario, tipo: usuario.tipoUsuario };
+        // Incluir todos los campos del usuario en el payload del token
+        const payload = {
+            id: usuario.idUsuario,
+            nombre: usuario.nombreUsuario,
+            apellido: usuario.apellidoUsuario,
+            edad: usuario.edadUsuario,
+            correo: usuario.correoUsuario,
+            telefono: usuario.telefonoUsuario,
+            tipo: usuario.tipoUsuario
+        };
+
+        // Mostrar el payload en consola para verificación
+        console.log("Payload generado:", payload);
+        
         const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
 
         // Registrar inicio de sesión exitoso con ID de usuario
@@ -241,6 +254,7 @@ exports.loginUsuario = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
 exports.logoutUsuario = async (req, res) => {
     try {
         const token = req.headers['authorization'];
