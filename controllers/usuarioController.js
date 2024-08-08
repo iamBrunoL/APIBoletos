@@ -242,11 +242,16 @@ exports.loginUsuario = async (req, res) => {
 
         // Mostrar el payload en consola para verificación
         console.log("Payload generado:", payload);
-        
+
         const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
 
         // Registrar inicio de sesión exitoso con ID de usuario
         await registrarLog('loginUsuario', req, { message: 'Inicio de sesión exitoso', usuario: usuario.idUsuario }, 'info');
+
+        // Decodificar el token para mostrar el tipo de usuario
+        const decoded = jwt.decode(token);
+        console.log("Tipo de usuario después de decodificación:", decoded.tipo);
+
 
         res.json({ token });
     } catch (error) {
