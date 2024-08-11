@@ -8,6 +8,7 @@ const registrarLog = require('../middleware/logs'); // Asegúrate de importar la
 // Crear un nuevo horario
 exports.createHorario = async (req, res) => {
     const { horaProgramada, fechaDeEmision, turno } = req.body;
+    const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
 
     // Validación de datos
     if (!horaProgramada) {
@@ -55,8 +56,7 @@ exports.createHorario = async (req, res) => {
             fechaDeEmision,
             turno
         });
-
-        registrarLog(req, 'Horario creado exitosamente'); // Registrar la acción exitosa
+        registrarLog('Horario creado', req, userAgent, 'info');
         res.status(201).json(horario);
     } catch (error) {
         registrarLog(req, `Error al crear horario: ${error.message}`); // Registrar el error
@@ -66,9 +66,11 @@ exports.createHorario = async (req, res) => {
 
 // Obtener todos los horarios
 exports.getAllHorarios = async (req, res) => {
+    const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
+
     try {
         const horarios = await Horario.findAll();
-        registrarLog(req, 'Horarios obtenidos exitosamente'); // Registrar la acción exitosa
+        registrarLog('Horarios consultados', req, userAgent, 'info');
         res.json(horarios);
     } catch (error) {
         registrarLog(req, `Error al obtener horarios: ${error.message}`); // Registrar el error
