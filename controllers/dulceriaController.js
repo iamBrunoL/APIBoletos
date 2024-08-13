@@ -5,7 +5,7 @@ exports.getAllProductos = async (req, res) => {
     try {
         const productos = await Dulceria.findAll();
         const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
-        registrarLog('getAllProductos', req, { productosCount: productos.length, userAgent }, 'info');
+        registrarLog('getAllDulceria', req, { productosCount: productos.length, userAgent }, 'info');
         res.json(productos);
     } catch (error) {
         const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
