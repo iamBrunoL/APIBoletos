@@ -65,10 +65,13 @@ exports.createPelicula = async (req, res) => {
 exports.getAllPeliculas = async (req, res) => {
     try {
         const peliculas = await Pelicula.findAll();
-        registrarLog(req, 'getAllPeliculas - éxito', { peliculas });
+        const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
+        registrarLog('getAllPeliculas', req, { peliculasCount: peliculas.length, userAgent }, 'info');
         res.json(peliculas);
     } catch (error) {
-        registrarLog(req, 'getAllPeliculas - error', { error: error.message });
+        const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
+        registrarLog('getAllSalas', req, { error: error.message, userAgent }, 'error');
+
         res.status(500).json({ error: error.message });
     }
 };
