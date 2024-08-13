@@ -3,7 +3,7 @@ const Pelicula = require('../models/Pelicula');
 const PDFDocument = require('pdfkit');
 const { Op } = require('sequelize');
 const { validationResult } = require('express-validator');
-const registrarLog = require('../middleware/logs'); // Asegúrate de importar la función de logging
+const registrarLog = require('../middleware/logs'); // Asegúrate de que la ruta sea correcta
 
 // Crear un nuevo horario
 exports.createHorario = async (req, res) => {
@@ -13,24 +13,28 @@ exports.createHorario = async (req, res) => {
     // Validación de datos
     if (!horaProgramada) {
         const errorMessage = 'La hora programada es requerida';
-        registrarLog(req, errorMessage); // Registrar el error
+        const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
+        registrarLog(req, 'createHorario', { errorMessage, userAgent }, 'warn');
         return res.status(400).json({ message: errorMessage });
     }
     if (!fechaDeEmision) {
         const errorMessage = 'La fecha de emisión es requerida';
-        registrarLog(req, errorMessage); // Registrar el error
+        const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
+        registrarLog(req, 'createHorario', { errorMessage, userAgent }, 'warn');
         return res.status(400).json({ message: errorMessage });
     }
     if (!turno) {
         const errorMessage = 'El turno es requerido';
-        registrarLog(req, errorMessage); // Registrar el error
+        const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
+        registrarLog(req, 'createHorario', { errorMessage, userAgent }, 'warn');
         return res.status(400).json({ message: errorMessage });
     }
 
     // Validar el formato de horaProgramada
     if (!/^([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$/.test(horaProgramada)) {
         const errorMessage = 'Formato de hora no válido';
-        registrarLog(req, errorMessage); // Registrar el error
+        const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
+        registrarLog(req, 'createHorario', { errorMessage, userAgent }, 'warn');
         return res.status(400).json({ message: errorMessage });
     }
 
@@ -38,7 +42,8 @@ exports.createHorario = async (req, res) => {
     const formattedDate = new Date(fechaDeEmision);
     if (isNaN(formattedDate.getTime())) {
         const errorMessage = 'Formato de fecha no válido';
-        registrarLog(req, errorMessage); // Registrar el error
+        const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
+        registrarLog(req, 'createHorario', { errorMessage, userAgent }, 'warn');
         return res.status(400).json({ message: errorMessage });
     }
 
@@ -46,7 +51,8 @@ exports.createHorario = async (req, res) => {
     const validTurnos = ['mañana', 'tarde', 'noche'];
     if (!validTurnos.includes(turno)) {
         const errorMessage = 'Turno no válido';
-        registrarLog(req, errorMessage); // Registrar el error
+        const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
+        registrarLog(req, 'createHorario', { errorMessage, userAgent }, 'warn');
         return res.status(400).json({ message: errorMessage });
     }
 
@@ -56,30 +62,37 @@ exports.createHorario = async (req, res) => {
             fechaDeEmision,
             turno
         });
-        registrarLog('Horario creado', req, userAgent, 'info');
+        const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
+        registrarLog(req, 'createHorario', { message: 'Horario creado exitosamente', horario, userAgent }, 'info');
         res.status(201).json(horario);
     } catch (error) {
-        registrarLog(req, `Error al crear horario: ${error.message}`); // Registrar el error
-        res.status(500).json({ error: error.message });
+        const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
+        registrarLog(req, 'createHorario', { error: error.message, userAgent }, 'error');
+        res.status(500).json({ error: 'Error al crear el horario. Por favor, intenta de nuevo más tarde.' });
     }
 };
 
 // Obtener todos los horarios
 exports.getAllHorarios = async (req, res) => {
-    const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
-
+    const userAgent = req.headers && req.headers['user-agent'] ? req.headers['user-agent'] : 'unknown';
     try {
         const horarios = await Horario.findAll();
-        registrarLog('Horarios consultados', req, userAgent, 'info');
+        if (!horarios || horarios.length === 0) {
+            throw new Error('No se encontraron horarios.');
+        }
+        registrarLog(req, 'getAllHorarios', { message: 'Horarios consultados exitosamente', userAgent }, 'info');
         res.json(horarios);
     } catch (error) {
-        registrarLog(req, `Error al obtener horarios: ${error.message}`); // Registrar el error
-        res.status(500).json({ error: error.message });
+        registrarLog(req, 'getAllHorarios', { error: error.message, userAgent }, 'error');
+        res.status(500).json({ error: 'Error al obtener los horarios. Por favor, intenta de nuevo más tarde.' });
     }
 };
 
+
 // Obtener horarios por criterios de búsqueda
 exports.getHorarios = async (req, res) => {
+    const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
+
     try {
         const { idHorario, fechaDeEmision, horaProgramada, turno } = req.query;
         const searchCriteria = {};
@@ -87,24 +100,22 @@ exports.getHorarios = async (req, res) => {
         if (idHorario) searchCriteria.idHorario = idHorario;
 
         if (fechaDeEmision) {
-            // Convertir fecha a formato YYYY-MM-DD
             const formattedDate = new Date(fechaDeEmision);
             if (isNaN(formattedDate.getTime())) {
                 const errorMessage = 'Formato de fecha no válido';
-                registrarLog(req, errorMessage); // Registrar el error
+                registrarLog('Formato de fecha no válido', req, userAgent, 'error');
                 return res.status(400).json({ message: errorMessage });
             }
             searchCriteria.fechaDeEmision = {
-                [Op.eq]: formattedDate.toISOString().split('T')[0] // Formato YYYY-MM-DD
+                [Op.eq]: formattedDate.toISOString().split('T')[0]
             };
         }
 
         if (horaProgramada) {
-            // Validar y ajustar formato de horaProgramada
             const time = horaProgramada;
             if (!/^([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$/.test(time)) {
                 const errorMessage = 'Formato de hora no válido';
-                registrarLog(req, errorMessage); // Registrar el error
+                registrarLog('Formato de hora no válido', req, userAgent, 'error');
                 return res.status(400).json({ message: errorMessage });
             }
             searchCriteria.horaProgramada = {
@@ -115,27 +126,26 @@ exports.getHorarios = async (req, res) => {
         if (turno) {
             if (!['mañana', 'tarde', 'noche'].includes(turno)) {
                 const errorMessage = 'Turno no válido';
-                registrarLog(req, errorMessage); // Registrar el error
+                registrarLog('Turno no válido', req, userAgent, 'error');
                 return res.status(400).json({ message: errorMessage });
             }
             searchCriteria.turno = turno;
         }
 
-        // Ejecutar la consulta
         const horarios = await Horario.findAll({
             where: searchCriteria
         });
 
         if (horarios.length > 0) {
-            registrarLog(req, 'Horarios encontrados con los criterios de búsqueda'); // Registrar la acción exitosa
+            registrarLog('Horarios encontrados con los criterios de búsqueda', req, userAgent, 'info');
             res.json(horarios);
         } else {
             const errorMessage = 'No se encontraron horarios con los criterios proporcionados';
-            registrarLog(req, errorMessage); // Registrar el error
+            registrarLog('No se encontraron horarios con los criterios proporcionados', req, userAgent, 'warning');
             res.status(404).json({ message: errorMessage });
         }
     } catch (error) {
-        registrarLog(req, `Error al obtener horarios por criterios: ${error.message}`); // Registrar el error
+        registrarLog(`Error al obtener horarios por criterios: ${error.message}`, req, userAgent, 'error');
         res.status(500).json({ error: error.message });
     }
 };
@@ -143,48 +153,43 @@ exports.getHorarios = async (req, res) => {
 // Actualizar horarios por múltiples criterios
 exports.updateHorarios = async (req, res) => {
     const { idHorario, horaProgramada, fechaDeEmision, turno } = req.body;
+    const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
 
-    // Validación de datos
     if (!idHorario) {
         const errorMessage = 'ID del horario es requerido para la actualización';
-        registrarLog(req, errorMessage); // Registrar el error
+        registrarLog('ID del horario es requerido para la actualización', req, userAgent, 'error');
         return res.status(400).json({ message: errorMessage });
     }
 
-    // Validar el formato de horaProgramada, si se proporciona
     if (horaProgramada && !/^([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$/.test(horaProgramada)) {
         const errorMessage = 'Formato de hora no válido';
-        registrarLog(req, errorMessage); // Registrar el error
+        registrarLog('Formato de hora no válido', req, userAgent, 'error');
         return res.status(400).json({ message: errorMessage });
     }
 
-    // Validar el formato de fechaDeEmision, si se proporciona
     if (fechaDeEmision) {
         const formattedDate = new Date(fechaDeEmision);
         if (isNaN(formattedDate.getTime())) {
             const errorMessage = 'Formato de fecha no válido';
-            registrarLog(req, errorMessage); // Registrar el error
+            registrarLog('Formato de fecha no válido', req, userAgent, 'error');
             return res.status(400).json({ message: errorMessage });
         }
     }
 
-    // Validar el turno, si se proporciona
     if (turno && !['mañana', 'tarde', 'noche'].includes(turno)) {
         const errorMessage = 'Turno no válido';
-        registrarLog(req, errorMessage); // Registrar el error
+        registrarLog('Turno no válido', req, userAgent, 'error');
         return res.status(400).json({ message: errorMessage });
     }
 
     try {
-        // Encuentra el horario a actualizar
         const horario = await Horario.findByPk(idHorario);
         if (!horario) {
             const errorMessage = 'Horario no encontrado';
-            registrarLog(req, errorMessage); // Registrar el error
+            registrarLog('Horario no encontrado', req, userAgent, 'warning');
             return res.status(404).json({ message: errorMessage });
         }
 
-        // Actualizar el horario con los campos proporcionados
         const updated = await Horario.update(
             {
                 horaProgramada: horaProgramada || horario.horaProgramada,
@@ -195,34 +200,40 @@ exports.updateHorarios = async (req, res) => {
         );
 
         if (updated[0] === 1) {
-            registrarLog(req, 'Horario actualizado exitosamente'); // Registrar la acción exitosa
+            registrarLog('Horario actualizado exitosamente', req, userAgent, 'info');
             res.json({ message: 'Horario actualizado exitosamente' });
         } else {
             const errorMessage = 'No se pudo actualizar el horario';
-            registrarLog(req, errorMessage); // Registrar el error
+            registrarLog('No se pudo actualizar el horario', req, userAgent, 'error');
             res.status(400).json({ message: errorMessage });
         }
     } catch (error) {
-        registrarLog(req, `Error al actualizar horario: ${error.message}`); // Registrar el error
+        registrarLog(`Error al actualizar horario: ${error.message}`, req, userAgent, 'error');
         res.status(500).json({ error: error.message });
     }
 };
 
-// Eliminar un horario
+// Eliminar un horario por ID
 exports.deleteHorario = async (req, res) => {
-    try {
-        const { idHorario } = req.params;
-        if (!idHorario) {
-            const errorMessage = 'ID del horario es requerido para la eliminación';
-            registrarLog(req, errorMessage); // Registrar el error
-            return res.status(400).json({ message: errorMessage });
-        }
+    const { idHorario } = req.params;
+    const userAgent = req.headers['user-agent'] || 'unknown';
+    
+    // Log para depuración
+    console.log('User-Agent:', userAgent);
 
+    if (!idHorario) {
+        const errorMessage = 'ID del horario es requerido para la eliminación';
+        registrarLog(req, 'deleteHorario', { message: errorMessage, userAgent }, 'error');
+        return res.status(400).json({ message: errorMessage });
+    }
+
+    try {
         // Verificar si el horario existe
-        const horario = await Horario.findByPk(idHorario);
+        const horario = await Horario.findOne({ where: { idHorario } });
+
         if (!horario) {
             const errorMessage = 'Horario no encontrado';
-            registrarLog(req, errorMessage); // Registrar el error
+            registrarLog(req, 'deleteHorario', { message: errorMessage, userAgent }, 'warning');
             return res.status(404).json({ message: errorMessage });
         }
 
@@ -230,18 +241,17 @@ exports.deleteHorario = async (req, res) => {
         const peliculas = await Pelicula.findAll({ where: { idHorario } });
         if (peliculas.length > 0) {
             const errorMessage = 'No se puede eliminar el horario porque hay registros asociados en la tabla peliculas';
-            registrarLog(req, errorMessage); // Registrar el error
+            registrarLog(req, 'deleteHorario', { message: errorMessage, userAgent }, 'warning');
             return res.status(400).json({ message: errorMessage });
         }
 
         // Eliminar el horario
-        await Horario.destroy({ where: { idHorario } });
-
-        registrarLog(req, 'Horario eliminado exitosamente'); // Registrar la acción exitosa
+        await horario.destroy();
+        registrarLog(req, 'deleteHorario', { message: 'Horario eliminado exitosamente', userAgent }, 'info');
         res.json({ message: 'Horario eliminado exitosamente' });
     } catch (error) {
-        registrarLog(req, `Error al eliminar horario: ${error.message}`); // Registrar el error
-        res.status(500).json({ error: error.message });
+        registrarLog(req, 'deleteHorario', { error: error.message, userAgent }, 'error');
+        res.status(500).json({ error: 'Error al eliminar el horario. Por favor, intenta de nuevo más tarde.' });
     }
 };
 

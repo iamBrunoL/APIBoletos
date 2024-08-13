@@ -2,7 +2,7 @@ const PDFDocument = require('pdfkit');
 const Sala = require('../models/Sala');
 const Asiento = require('../models/Asiento');
 const { Op } = require('sequelize');
-const registrarLog = require('../middleware/logs'); // Asegúrate de tener esta ruta
+const registrarLog = require('../middleware/logs');
 
 // Crear una nueva sala
 exports.createSala = async (req, res) => {
@@ -11,17 +11,20 @@ exports.createSala = async (req, res) => {
     try {
         // Validar entrada
         if (!nombreSala || typeof nombreSala !== 'string' || nombreSala.trim() === '') {
-            registrarLog(req, 'createSala', { message: 'Nombre de sala inválido.' }, 'warn');
+            const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
+            registrarLog(req, 'createSala', { message: 'Nombre de sala inválido.', userAgent }, 'warn');
             return res.status(400).json({ message: 'El nombre de la sala es requerido y debe ser una cadena de texto no vacía.' });
         }
 
         if (cantidadFilas <= 0 || maxAsientosPorFila <= 0) {
-            registrarLog(req, 'createSala', { message: 'Cantidad de filas o asientos por fila inválidos.' }, 'warn');
+            const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
+            registrarLog(req, 'createSala', { message: 'Cantidad de filas o asientos por fila inválidos.', userAgent }, 'warn');
             return res.status(400).json({ message: 'La cantidad de filas y el máximo de asientos por fila deben ser números mayores a 0.' });
         }
 
         if (isNaN(cantidadAsientos) || cantidadAsientos <= 0) {
-            registrarLog(req, 'createSala', { message: 'Cantidad de asientos inválida.' }, 'warn');
+            const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
+            registrarLog(req, 'createSala', { message: 'Cantidad de asientos inválida.', userAgent }, 'warn');
             return res.status(400).json({ message: 'La cantidad de asientos debe ser un número mayor a 0.' });
         }
 
@@ -30,20 +33,23 @@ exports.createSala = async (req, res) => {
 
         // Verificar que la cantidad de asientos ingresados coincida con la cantidad calculada
         if (cantidadAsientos !== cantidadAsientosEsperados) {
-            registrarLog(req, 'createSala', { message: `Cantidad de asientos no coincide: esperada ${cantidadAsientosEsperados}, proporcionada ${cantidadAsientos}` }, 'warn');
+            const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
+            registrarLog(req, 'createSala', { message: `Cantidad de asientos no coincide: esperada ${cantidadAsientosEsperados}, proporcionada ${cantidadAsientos}`, userAgent }, 'warn');
             return res.status(400).json({ message: `La cantidad de asientos ingresados (${cantidadAsientos}) no coincide con la cantidad calculada (${cantidadAsientosEsperados}).` });
         }
 
         // Verificar que la cantidad total de asientos no exceda el máximo permitido (500)
         if (cantidadAsientos > 500) {
-            registrarLog(req, 'createSala', { message: 'Cantidad de asientos excede el máximo permitido de 500.' }, 'warn');
+            const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
+            registrarLog(req, 'createSala', { message: 'Cantidad de asientos excede el máximo permitido de 500.', userAgent }, 'warn');
             return res.status(400).json({ message: 'La cantidad de asientos no puede exceder el máximo permitido de 500.' });
         }
 
         // Verificar si la sala ya existe
         const salaExistente = await Sala.findOne({ where: { nombreSala } });
         if (salaExistente) {
-            registrarLog(req, 'createSala', { message: `Sala ya existente: ${nombreSala}` }, 'warn');
+            const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
+            registrarLog(req, 'createSala', { message: `Sala ya existente: ${nombreSala}`, userAgent }, 'warn');
             return res.status(400).json({ message: `Ya existe una sala con el nombre "${nombreSala}". Elige un nombre diferente.` });
         }
 
@@ -72,10 +78,12 @@ exports.createSala = async (req, res) => {
         // Crear los asientos en la base de datos
         await Asiento.bulkCreate(asientos);
 
-        registrarLog(req, 'createSala', { sala }, 'info');
+        const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
+        registrarLog(req, 'createSala', { sala, userAgent }, 'info');
         res.status(201).json(sala);
     } catch (error) {
-        registrarLog(req, 'createSala', { error: error.message }, 'error');
+        const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
+        registrarLog(req, 'createSala', { error: error.message, userAgent }, 'error');
         res.status(500).json({ message: 'Error en el servidor. Por favor, intenta de nuevo más tarde.' });
     }
 };
@@ -85,11 +93,11 @@ exports.getAllSalas = async (req, res) => {
     try {
         const salas = await Sala.findAll();
         const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
-        registrarLog('getAllSalas', req, { salasCount: salas.length, userAgent }, 'info');
+        registrarLog(req, 'getAllSalas', { salasCount: salas.length, userAgent }, 'info');
         res.json(salas);
     } catch (error) {
         const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
-        registrarLog('getAllSalas', req, { error: error.message, userAgent }, 'error');
+        registrarLog(req, 'getAllSalas', { error: error.message, userAgent }, 'error');
         res.status(500).json({ error: error.message });
     }
 };
@@ -107,19 +115,18 @@ exports.getSalas = async (req, res) => {
 
         const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
         if (salas.length > 0) {
-            registrarLog('getSalas', req, { searchCriteria, resultsCount: salas.length, userAgent }, 'info');
+            registrarLog(req, 'getSalas', { searchCriteria, resultsCount: salas.length, userAgent }, 'info');
             res.json(salas);
         } else {
-            registrarLog('getSalas', req, { searchCriteria, userAgent }, 'warn');
+            registrarLog(req, 'getSalas', { searchCriteria, userAgent }, 'warn');
             res.status(404).json({ message: 'No se encontraron salas con los criterios proporcionados' });
         }
     } catch (error) {
         const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
-        registrarLog('getSalas', req, { error: error.message, userAgent }, 'error');
+        registrarLog(req, 'getSalas', { error: error.message, userAgent }, 'error');
         res.status(500).json({ error: error.message });
     }
 };
-
 
 // Actualizar salas por múltiples criterios
 exports.updateSalas = async (req, res) => {
@@ -128,7 +135,8 @@ exports.updateSalas = async (req, res) => {
     try {
         // Validar ID de la sala
         if (!idSala) {
-            registrarLog(req, 'updateSalas', { message: 'ID de sala no proporcionado' }, 'warn');
+            const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
+            registrarLog(req, 'updateSalas', { message: 'ID de sala no proporcionado', userAgent }, 'warn');
             return res.status(400).json({ message: 'ID de la sala es requerido para la actualización' });
         }
 
@@ -141,7 +149,8 @@ exports.updateSalas = async (req, res) => {
         });
 
         if (asientosOcupados > 0) {
-            registrarLog(req, 'updateSalas', { idSala, message: 'Sala no actualizable debido a asientos ocupados' }, 'warn');
+            const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
+            registrarLog(req, 'updateSalas', { idSala, message: 'Sala no actualizable debido a asientos ocupados', userAgent }, 'warn');
             return res.status(400).json({ message: 'No se puede actualizar la sala porque hay asientos ocupados.' });
         }
 
@@ -150,7 +159,8 @@ exports.updateSalas = async (req, res) => {
             const cantidadCalculada = filas * maxAsientosPorFila;
 
             if (cantidadAsientos !== cantidadCalculada) {
-                registrarLog(req, 'updateSalas', { idSala, cantidadAsientos, cantidadCalculada, message: 'Cantidad de asientos no coincide' }, 'warn');
+                const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
+                registrarLog(req, 'updateSalas', { idSala, cantidadAsientos, cantidadCalculada, message: 'Cantidad de asientos no coincide', userAgent }, 'warn');
                 return res.status(400).json({
                     message: `La cantidad de asientos ingresados (${cantidadAsientos}) no coincide con la cantidad calculada (${cantidadCalculada}).`
                 });
@@ -161,105 +171,105 @@ exports.updateSalas = async (req, res) => {
         const updateFields = {};
         if (nombreSala) {
             if (nombreSala.trim() === '') {
-                registrarLog(req, 'updateSalas', { idSala, nombreSala, message: 'Nombre de sala vacío' }, 'warn');
-                return res.status(400).json({ message: 'El nombre de la sala no puede estar vacío' });
+                const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
+                registrarLog(req, 'updateSalas', { idSala, nombreSala, message: 'Nombre de sala vacío', userAgent }, 'warn');
+                return res.status(400).json({ message: 'El nombre de la sala no puede estar vacío.' });
             }
             updateFields.nombreSala = nombreSala;
         }
-        if (cantidadAsientos) {
-            if (cantidadAsientos <= 0) {
-                registrarLog(req, 'updateSalas', { idSala, cantidadAsientos, message: 'Cantidad de asientos no válida' }, 'warn');
-                return res.status(400).json({ message: 'La cantidad de asientos debe ser un número positivo' });
-            }
-            updateFields.cantidadAsientos = cantidadAsientos;
-        }
-        if (filas) {
-            if (filas <= 0) {
-                registrarLog(req, 'updateSalas', { idSala, filas, message: 'Cantidad de filas no válida' }, 'warn');
-                return res.status(400).json({ message: 'La cantidad de filas debe ser un número positivo' });
-            }
-            updateFields.filas = filas;
-        }
-        if (maxAsientosPorFila) {
-            if (maxAsientosPorFila <= 0) {
-                registrarLog(req, 'updateSalas', { idSala, maxAsientosPorFila, message: 'Número máximo de asientos por fila no válido' }, 'warn');
-                return res.status(400).json({ message: 'El número máximo de asientos por fila debe ser un número positivo' });
-            }
-            updateFields.maxAsientosPorFila = maxAsientosPorFila;
-        }
+
+        if (cantidadAsientos) updateFields.cantidadAsientos = cantidadAsientos;
 
         const [updated] = await Sala.update(updateFields, { where: { idSala } });
 
-        if (updated) {
-            // Actualizar asientos en la base de datos
-            if (filas && maxAsientosPorFila) {
-                await Asiento.destroy({ where: { idSalaAsiento: idSala } });
-
-                for (let i = 0; i < filas; i++) {
-                    const filaAsiento = String.fromCharCode(65 + i); // Genera letras A, B, C, etc.
-                    for (let j = 1; j <= maxAsientosPorFila; j++) {
-                        await Asiento.create({
-                            idSalaAsiento: idSala,
-                            filaAsiento: filaAsiento,
-                            numeroAsiento: j,
-                            estadoAsiento: 'disponible'
-                        });
-                    }
-                }
-            }
-
-            registrarLog(req, 'updateSalas', { idSala, updateFields }, 'info');
-            res.json({ message: 'Sala actualizada exitosamente' });
-        } else {
-            registrarLog(req, 'updateSalas', { idSala, message: 'Sala no encontrada' }, 'warn');
-            res.status(404).json({ message: 'Sala no encontrada' });
+        if (updated === 0) {
+            const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
+            registrarLog(req, 'updateSalas', { idSala, message: 'Sala no encontrada o sin cambios', userAgent }, 'warn');
+            return res.status(404).json({ message: 'No se encontró la sala o no se realizaron cambios' });
         }
+
+        const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
+        registrarLog(req, 'updateSalas', { idSala, updateFields, userAgent }, 'info');
+        res.json({ message: 'Sala actualizada exitosamente' });
     } catch (error) {
-        registrarLog(req, 'updateSalas', { idSala, error: error.message }, 'error');
-        res.status(500).json({ error: error.message });
+        const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
+        registrarLog(req, 'updateSalas', { idSala, error: error.message, userAgent }, 'error');
+        res.status(500).json({ message: 'Error en el servidor. Por favor, intenta de nuevo más tarde.' });
     }
 };
 
-
-// Eliminar una sala
+// Eliminar una sala por su ID
 exports.deleteSala = async (req, res) => {
     const { idSala } = req.params;
 
     try {
-        // Validar que se ha proporcionado el ID de la sala
-        if (!idSala) {
-            registrarLog(req, 'deleteSala', { message: 'ID de sala no proporcionado' }, 'warn');
-            return res.status(400).json({ message: 'ID de la sala es requerido para la eliminación.' });
+        // Verificar si hay asientos ocupados
+        const asientosOcupados = await Asiento.count({
+            where: {
+                idSalaAsiento: idSala,
+                estadoAsiento: 'ocupado'
+            }
+        });
+
+        if (asientosOcupados > 0) {
+            const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
+            registrarLog(req, 'deleteSala', { idSala, message: 'Sala no eliminable debido a asientos ocupados', userAgent }, 'warn');
+            return res.status(400).json({ message: 'No se puede eliminar la sala porque hay asientos ocupados.' });
         }
-
-        // Verificar si la sala existe
-        const sala = await Sala.findByPk(idSala);
-        if (!sala) {
-            registrarLog(req, 'deleteSala', { idSala, message: 'Sala no encontrada' }, 'warn');
-            return res.status(404).json({ message: 'Sala no encontrada.' });
-        }
-
-        // Verificar el estado de todos los asientos asociados a la sala
-        const asientos = await Asiento.findAll({ where: { idSalaAsiento: idSala } });
-
-        // Verificar si todos los asientos están disponibles
-        const todosDisponibles = asientos.every(asiento => asiento.estadoAsiento === 'disponible');
-
-        if (!todosDisponibles) {
-            registrarLog(req, 'deleteSala', { idSala, message: 'No se puede eliminar la sala debido a asientos ocupados' }, 'warn');
-            return res.status(400).json({ message: 'No se puede eliminar la sala porque algunos asientos están ocupados.' });
-        }
-
-        // Eliminar los asientos asociados a la sala
-        await Asiento.destroy({ where: { idSalaAsiento: idSala } });
 
         // Eliminar la sala
-        await Sala.destroy({ where: { idSala } });
+        const deleted = await Sala.destroy({ where: { idSala } });
 
-        registrarLog(req, 'deleteSala', { idSala, message: 'Sala eliminada exitosamente' }, 'info');
-        res.json({ message: 'Sala eliminada exitosamente.' });
+        if (deleted === 0) {
+            const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
+            registrarLog(req, 'deleteSala', { idSala, message: 'Sala no encontrada', userAgent }, 'warn');
+            return res.status(404).json({ message: 'Sala no encontrada' });
+        }
+
+        const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
+        registrarLog(req, 'deleteSala', { idSala, userAgent }, 'info');
+        res.json({ message: 'Sala eliminada exitosamente' });
     } catch (error) {
-        registrarLog(req, 'deleteSala', { idSala, error: error.message }, 'error');
+        const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
+        registrarLog(req, 'deleteSala', { idSala, error: error.message, userAgent }, 'error');
+        res.status(500).json({ message: 'Error en el servidor. Por favor, intenta de nuevo más tarde.' });
+    }
+};
+
+// Generar un PDF con la información de las salas
+exports.generateSalasPDF = async (req, res) => {
+    try {
+        const salas = await Sala.findAll();
+        if (salas.length === 0) {
+            const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
+            registrarLog(req, 'generateSalasPDF', { message: 'No hay salas para generar el PDF', userAgent }, 'warn');
+            return res.status(404).json({ message: 'No hay salas disponibles para generar el PDF' });
+        }
+
+        const doc = new PDFDocument();
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'attachment; filename=salas.pdf');
+        doc.pipe(res);
+
+        // Título
+        doc.fontSize(20).text('Listado de Salas', { align: 'center' });
+        doc.moveDown(2);
+
+        // Información de las salas
+        salas.forEach((sala) => {
+            doc.fontSize(14).text(`ID: ${sala.idSala}`);
+            doc.text(`Nombre: ${sala.nombreSala}`);
+            doc.text(`Cantidad de Asientos: ${sala.cantidadAsientos}`);
+            doc.moveDown();
+        });
+
+        doc.end();
+
+        const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
+        registrarLog(req, 'generateSalasPDF', { salasCount: salas.length, userAgent }, 'info');
+    } catch (error) {
+        const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
+        registrarLog(req, 'generateSalasPDF', { error: error.message, userAgent }, 'error');
         res.status(500).json({ message: 'Error en el servidor. Por favor, intenta de nuevo más tarde.' });
     }
 };

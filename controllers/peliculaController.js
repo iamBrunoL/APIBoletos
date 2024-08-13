@@ -24,7 +24,15 @@ exports.createPelicula = async (req, res) => {
     }
 
     try {
-        // Verificar si ya existe una película con el mismo nombre y director
+        // Verificar si el horario existe
+        const horarioExistente = await Horario.findByPk(idHorario);
+        if (!horarioExistente) {
+            const errorMsg = 'El horario especificado no existe.';
+            registrarLog('createPelicula - error', req, { error: errorMsg });
+            return res.status(400).json({ error: errorMsg });
+        }
+
+        // Verificar si ya existe una película con el mismo nombre, director y horario
         const peliculaExistente = await Pelicula.findOne({
             where: {
                 nombrePelicula,
@@ -54,11 +62,11 @@ exports.createPelicula = async (req, res) => {
         registrarLog('createPelicula - éxito', req, { pelicula });
         res.status(201).json(pelicula);
     } catch (error) {
+        // Registrar detalles del error
         registrarLog('createPelicula - error', req, { error: error.message, stack: error.stack });
         res.status(500).json({ error: 'Ocurrió un error al crear la película.' });
     }
 };
-
 
 
 // Obtener todas las películas
