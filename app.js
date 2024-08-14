@@ -8,7 +8,8 @@ const salaRoutes = require('./routes/salaRoutes');
 const asientoRoutes = require('./routes/asientoRoutes');
 const boletoRoutes = require('./routes/boletoRoutes');
 const pagoRoutes = require('./routes/pagoRoutes');
-const dulceriaRoutes = require('./routes/dulceriaRoutes'); // Nueva ruta para Dulcería
+const dulceriaRoutes = require('./routes/dulceriaRoutes');
+const carteleraRoutes = require('./routes/carteleraRoutes');
 require('dotenv').config(); // Cargar variables de entorno
 const path = require('path'); // Importar el módulo path para gestionar rutas
 
@@ -35,7 +36,8 @@ app.use('/salas', salaRoutes);
 app.use('/asientos', asientoRoutes);
 app.use('/boletos', boletoRoutes);
 app.use('/pagos', pagoRoutes);
-app.use('/dulceria', dulceriaRoutes); // Usar la ruta de Dulcería
+app.use('/dulceria', dulceriaRoutes);
+app.use('/cartelera', carteleraRoutes);
 
 // Middleware para manejar rutas no definidas
 app.use((req, res) => {
