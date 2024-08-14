@@ -1,55 +1,75 @@
 const Pelicula = require('../models/Pelicula');
 const PDFDocument = require('pdfkit');
 const registrarLog = require('../middleware/logs');
+const multer = require('multer');
+const path = require('path');
+
+// Configuración de multer para almacenar imágenes
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, 'uploads/'); // Ruta donde se almacenarán las imágenes
+    },
+    filename: function (req, file, cb) {
+        cb(null, Date.now() + path.extname(file.originalname)); // Nombre único para cada archivo
+    }
+});
+
+const upload = multer({ storage: storage });
 
 // Crear una nueva película
-exports.createPelicula = async (req, res) => {
-    const { nombrePelicula, directorPelicula, duracionPelicula, actoresPelicula, clasificacionPelicula, precioBoleto, imagenPelicula } = req.body;
-
-    if (!req.headers) {
-        return res.status(500).json({ error: 'No se puede registrar el log. Encabezados no disponibles.' });
-    }
-
-    registrarLog('createPelicula - datos recibidos', req, { nombrePelicula, directorPelicula, duracionPelicula, actoresPelicula, clasificacionPelicula, precioBoleto, imagenPelicula });
-
-    if (!nombrePelicula || !directorPelicula || !duracionPelicula || !actoresPelicula || !clasificacionPelicula || !precioBoleto) {
-        const errorMsg = 'Todos los campos son obligatorios.';
-        registrarLog('createPelicula - error', req, { error: errorMsg });
-        return res.status(400).json({ error: errorMsg });
-    }
-
-    try {
-        const peliculaExistente = await Pelicula.findOne({
-            where: {
-                nombrePelicula,
-                directorPelicula,
-                clasificacionPelicula
-            }
-        });
-
-        if (peliculaExistente) {
-            const warningMsg = 'La película ya existe con el mismo nombre y director. Intente cambiando los datos.';
-            registrarLog('createPelicula - advertencia', req, { warning: warningMsg });
-            return res.status(409).json({ message: warningMsg });
+exports.createPelicula = [
+    upload.single('imagenPelicula'),  // Middleware de multer para una sola imagen
+    async (req, res) => {
+        const { nombrePelicula, directorPelicula, duracionPelicula, actoresPelicula, clasificacionPelicula, precioBoleto } = req.body;
+        
+        if (!req.headers) {
+            return res.status(500).json({ error: 'No se puede registrar el log. Encabezados no disponibles.' });
         }
 
-        const pelicula = await Pelicula.create({
-            nombrePelicula,
-            directorPelicula,
-            duracionPelicula,
-            actoresPelicula,
-            clasificacionPelicula,
-            precioBoleto,
-            imagenPelicula // Agregada la nueva columna
-        });
+        registrarLog('createPelicula - datos recibidos', req, { nombrePelicula, directorPelicula, duracionPelicula, actoresPelicula, clasificacionPelicula, precioBoleto });
 
-        registrarLog('createPelicula - éxito', req, { pelicula });
-        res.status(201).json(pelicula);
-    } catch (error) {
-        registrarLog('createPelicula - error', req, { error: error.message, stack: error.stack });
-        res.status(500).json({ error: 'Ocurrió un error al crear la película.' });
+        if (!nombrePelicula || !directorPelicula || !duracionPelicula || !actoresPelicula || !clasificacionPelicula || !precioBoleto) {
+            const errorMsg = 'Todos los campos son obligatorios.';
+            registrarLog('createPelicula - error', req, { error: errorMsg });
+            return res.status(400).json({ error: errorMsg });
+        }
+
+        try {
+            const peliculaExistente = await Pelicula.findOne({
+                where: {
+                    nombrePelicula,
+                    directorPelicula,
+                    clasificacionPelicula
+                }
+            });
+
+            if (peliculaExistente) {
+                const warningMsg = 'La película ya existe con el mismo nombre y director. Intente cambiando los datos.';
+                registrarLog('createPelicula - advertencia', req, { warning: warningMsg });
+                return res.status(409).json({ message: warningMsg });
+            }
+
+            const imagenPelicula = req.file ? req.file.path : null; // Ruta de la imagen subida
+
+            const pelicula = await Pelicula.create({
+                nombrePelicula,
+                directorPelicula,
+                duracionPelicula,
+                actoresPelicula,
+                clasificacionPelicula,
+                precioBoleto,
+                imagenPelicula
+            });
+
+            registrarLog('createPelicula - éxito', req, { pelicula });
+            res.status(201).json(pelicula);
+        } catch (error) {
+            registrarLog('createPelicula - error', req, { error: error.message, stack: error.stack });
+            res.status(500).json({ error: 'Ocurrió un error al crear la película.' });
+        }
     }
-};
+];
+
 
 // Obtener todas las películas
 exports.getAllPeliculas = async (req, res) => {

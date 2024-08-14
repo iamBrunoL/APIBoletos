@@ -19,6 +19,8 @@ app.use(morgan('dev'));
 
 // Servir archivos estáticos desde la carpeta 'public'
 app.use(express.static(path.join(__dirname, 'public')));
+// Servir archivos estáticos desde la carpeta 'uploads'
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Ruta para la raíz del servidor
 app.get('/', (req, res) => {

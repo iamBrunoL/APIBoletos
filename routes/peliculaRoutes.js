@@ -4,7 +4,7 @@ const peliculaController = require('../controllers/peliculaController');
 const verifyToken = require('../middleware/auth');
 const checkRole = require('../middleware/roleMiddleware');
 
-// Crear una nueva película
+// Crear una nueva película con imagen
 router.post('/', verifyToken, checkRole(['admin']), peliculaController.createPelicula);
 
 // Obtener todas las películas
