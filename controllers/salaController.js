@@ -241,6 +241,12 @@ exports.getSalasPDF = async (req, res) => {
     try {
         const salas = await Sala.findAll();
 
+        if (salas.length === 0) {
+            // Si no hay salas, respondemos con un mensaje en lugar de un PDF vacío
+            res.status(404).json({ message: 'No hay salas disponibles para generar el reporte.' });
+            return;
+        }
+
         const doc = new PDFDocument();
 
         res.setHeader('Content-Type', 'application/pdf');
@@ -259,9 +265,9 @@ exports.getSalasPDF = async (req, res) => {
 
         doc.end();
 
-        registrarLog('getSalasPDF', req, { message: 'Reporte de salas generado exitosamente' }, 'info');
+        registrarLog(req, 'getSalasPDF', { message: 'Reporte de salas generado exitosamente' }, 'info');
     } catch (error) {
-        registrarLog('getSalasPDF', req, { error: error.message }, 'error');
-        res.status(500).json({ error: error.message });
+        registrarLog(req, 'getSalasPDF', { error: error.message }, 'error');
+        res.status(500).json({ error: 'Error al generar el reporte. Por favor, intenta de nuevo más tarde.' });
     }
 };
