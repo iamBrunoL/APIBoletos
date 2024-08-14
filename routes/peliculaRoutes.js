@@ -10,11 +10,8 @@ router.post('/', verifyToken, checkRole(['admin']), peliculaController.createPel
 // Obtener todas las películas
 router.get('/', verifyToken, checkRole(['admin']), peliculaController.getAllPeliculas);
 
-// Obtener películas por criterios de búsqueda
-router.get('/search', verifyToken, checkRole(['admin']), peliculaController.getPeliculas);
-
-// Actualizar películas por múltiples criterios
-router.put('/', verifyToken, checkRole(['admin']), peliculaController.updatePeliculas);
+// Actualizar una película existente
+router.put('/:idPelicula', verifyToken, checkRole(['admin']), peliculaController.updatePelicula);
 
 // Eliminar una película
 router.delete('/:idPelicula', verifyToken, checkRole(['admin']), peliculaController.deletePelicula);

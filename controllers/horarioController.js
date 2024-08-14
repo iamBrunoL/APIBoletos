@@ -2,12 +2,11 @@ const Horario = require('../models/Horario');
 const Pelicula = require('../models/Pelicula');
 const PDFDocument = require('pdfkit');
 const { Op } = require('sequelize');
-const { validationResult } = require('express-validator');
 const registrarLog = require('../middleware/logs'); // Asegúrate de que la ruta sea correcta
 
 // Crear un nuevo horario
 exports.createHorario = async (req, res) => {
-    const { horaProgramada, fechaDeEmision, turno } = req.body;
+    const { horaProgramada, fechaDeEmision } = req.body;
     const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
 
     // Validación de datos
@@ -19,12 +18,6 @@ exports.createHorario = async (req, res) => {
     }
     if (!fechaDeEmision) {
         const errorMessage = 'La fecha de emisión es requerida';
-        const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
-        registrarLog(req, 'createHorario', { errorMessage, userAgent }, 'warn');
-        return res.status(400).json({ message: errorMessage });
-    }
-    if (!turno) {
-        const errorMessage = 'El turno es requerido';
         const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
         registrarLog(req, 'createHorario', { errorMessage, userAgent }, 'warn');
         return res.status(400).json({ message: errorMessage });
@@ -47,20 +40,11 @@ exports.createHorario = async (req, res) => {
         return res.status(400).json({ message: errorMessage });
     }
 
-    // Validar el turno
-    const validTurnos = ['mañana', 'tarde', 'noche'];
-    if (!validTurnos.includes(turno)) {
-        const errorMessage = 'Turno no válido';
-        const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
-        registrarLog(req, 'createHorario', { errorMessage, userAgent }, 'warn');
-        return res.status(400).json({ message: errorMessage });
-    }
 
     try {
         const horario = await Horario.create({
             horaProgramada,
-            fechaDeEmision,
-            turno
+            fechaDeEmision
         });
         const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
         registrarLog(req, 'createHorario', { message: 'Horario creado exitosamente', horario, userAgent }, 'info');
@@ -94,7 +78,7 @@ exports.getHorarios = async (req, res) => {
     const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
 
     try {
-        const { idHorario, fechaDeEmision, horaProgramada, turno } = req.query;
+        const { idHorario, fechaDeEmision, horaProgramada } = req.query;
         const searchCriteria = {};
 
         if (idHorario) searchCriteria.idHorario = idHorario;
@@ -123,15 +107,6 @@ exports.getHorarios = async (req, res) => {
             };
         }
 
-        if (turno) {
-            if (!['mañana', 'tarde', 'noche'].includes(turno)) {
-                const errorMessage = 'Turno no válido';
-                registrarLog('Turno no válido', req, userAgent, 'error');
-                return res.status(400).json({ message: errorMessage });
-            }
-            searchCriteria.turno = turno;
-        }
-
         const horarios = await Horario.findAll({
             where: searchCriteria
         });
@@ -152,7 +127,7 @@ exports.getHorarios = async (req, res) => {
 
 // Actualizar horarios por múltiples criterios
 exports.updateHorarios = async (req, res) => {
-    const { idHorario, horaProgramada, fechaDeEmision, turno } = req.body;
+    const { idHorario, horaProgramada, fechaDeEmision } = req.body;
     const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
 
     if (!idHorario) {
@@ -176,12 +151,6 @@ exports.updateHorarios = async (req, res) => {
         }
     }
 
-    if (turno && !['mañana', 'tarde', 'noche'].includes(turno)) {
-        const errorMessage = 'Turno no válido';
-        registrarLog('Turno no válido', req, userAgent, 'error');
-        return res.status(400).json({ message: errorMessage });
-    }
-
     try {
         const horario = await Horario.findByPk(idHorario);
         if (!horario) {
@@ -193,8 +162,7 @@ exports.updateHorarios = async (req, res) => {
         const updated = await Horario.update(
             {
                 horaProgramada: horaProgramada || horario.horaProgramada,
-                fechaDeEmision: fechaDeEmision || horario.fechaDeEmision,
-                turno: turno || horario.turno
+                fechaDeEmision: fechaDeEmision || horario.fechaDeEmision
             },
             { where: { idHorario } }
         );
@@ -272,7 +240,6 @@ exports.getHorariosPDF = async (req, res) => {
         horarios.forEach(horario => {
             doc.fontSize(12).text(`ID: ${horario.idHorario}`);
             doc.fontSize(12).text(`Hora Programada: ${horario.horaProgramada}`);
-            doc.fontSize(12).text(`Turno: ${horario.turno}`);
             doc.fontSize(12).text(`Fecha de Emisión: ${horario.fechaDeEmision}`);
             doc.moveDown();
         });

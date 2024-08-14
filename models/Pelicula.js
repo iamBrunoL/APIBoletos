@@ -1,6 +1,5 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
-const Horario = require('./Horario');
 
 const Pelicula = sequelize.define('Pelicula', {
   idPelicula: {
@@ -28,23 +27,17 @@ const Pelicula = sequelize.define('Pelicula', {
     type: DataTypes.STRING,
     allowNull: false
   },
-  idHorario: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: Horario,
-      key: 'idHorario'
-    }
-  },
   precioBoleto: {
     type: DataTypes.INTEGER,
     allowNull: false
+  },
+  imagenPelicula: {
+    type: DataTypes.TEXT('long'),
+    allowNull: true 
   }
 }, {
   tableName: 'peliculas',
   timestamps: false
 });
-
-Pelicula.belongsTo(Horario, { foreignKey: 'idHorario' });
 
 module.exports = Pelicula;
