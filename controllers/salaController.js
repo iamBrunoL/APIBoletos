@@ -236,45 +236,6 @@ exports.deleteSala = async (req, res) => {
     }
 };
 
-// Generar un PDF con la información de las salas
-exports.generateSalasPDF = async (req, res) => {
-    try {
-        const salas = await Sala.findAll();
-        if (salas.length === 0) {
-            const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
-            registrarLog(req, 'generateSalasPDF', { message: 'No hay salas para generar el PDF', userAgent }, 'warn');
-            return res.status(404).json({ message: 'No hay salas disponibles para generar el PDF' });
-        }
-
-        const doc = new PDFDocument();
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', 'attachment; filename=salas.pdf');
-        doc.pipe(res);
-
-        // Título
-        doc.fontSize(20).text('Listado de Salas', { align: 'center' });
-        doc.moveDown(2);
-
-        // Información de las salas
-        salas.forEach((sala) => {
-            doc.fontSize(14).text(`ID: ${sala.idSala}`);
-            doc.text(`Nombre: ${sala.nombreSala}`);
-            doc.text(`Cantidad de Asientos: ${sala.cantidadAsientos}`);
-            doc.moveDown();
-        });
-
-        doc.end();
-
-        const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
-        registrarLog(req, 'generateSalasPDF', { salasCount: salas.length, userAgent }, 'info');
-    } catch (error) {
-        const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
-        registrarLog(req, 'generateSalasPDF', { error: error.message, userAgent }, 'error');
-        res.status(500).json({ message: 'Error en el servidor. Por favor, intenta de nuevo más tarde.' });
-    }
-};
-
-
 // Generar reporte en PDF de las salas
 exports.getSalasPDF = async (req, res) => {
     try {
