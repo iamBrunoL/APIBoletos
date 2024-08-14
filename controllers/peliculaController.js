@@ -179,7 +179,6 @@ exports.getPeliculasPDF = async (req, res) => {
         peliculas.forEach(pelicula => {
             doc.fontSize(12).text(`ID de la película: ${pelicula.idPelicula}`);
             doc.fontSize(12).text(`Nombre: ${pelicula.nombrePelicula}`);
-            //doc.fontSize(12).text(`Descripción: ${pelicula.descripcion}`);
             doc.fontSize(12).text(`Duración: ${pelicula.duracionPelicula} minutos`);
             doc.fontSize(12).text(`Clasificación: ${pelicula.clasificacionPelicula}`);
             doc.fontSize(12).text(`Director: ${pelicula.directorPelicula}`);
