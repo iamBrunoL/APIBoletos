@@ -3,6 +3,12 @@ const PDFDocument = require('pdfkit');
 const registrarLog = require('../middleware/logs');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
+
+// Asegurarse de que el directorio de uploads existe
+if (!fs.existsSync('uploads/')) {
+    fs.mkdirSync('uploads/');
+}
 
 // Configuración de multer para almacenar imágenes
 const storage = multer.diskStorage({
@@ -21,12 +27,10 @@ exports.createPelicula = [
     upload.single('imagenPelicula'),  // Middleware de multer para una sola imagen
     async (req, res) => {
         const { nombrePelicula, directorPelicula, duracionPelicula, actoresPelicula, clasificacionPelicula, precioBoleto } = req.body;
-        
-        if (!req.headers) {
-            return res.status(500).json({ error: 'No se puede registrar el log. Encabezados no disponibles.' });
-        }
 
-        registrarLog('createPelicula - datos recibidos', req, { nombrePelicula, directorPelicula, duracionPelicula, actoresPelicula, clasificacionPelicula, precioBoleto });
+        // Registrar log solo si user-agent está disponible
+        const userAgent = req.headers['user-agent'] || 'unknown';
+        registrarLog('createPelicula - datos recibidos', req, { nombrePelicula, directorPelicula, duracionPelicula, actoresPelicula, clasificacionPelicula, precioBoleto, userAgent });
 
         if (!nombrePelicula || !directorPelicula || !duracionPelicula || !actoresPelicula || !clasificacionPelicula || !precioBoleto) {
             const errorMsg = 'Todos los campos son obligatorios.';
@@ -70,8 +74,6 @@ exports.createPelicula = [
     }
 ];
 
-
-// Obtener todas las películas
 exports.getAllPeliculas = async (req, res) => {
     try {
         const peliculas = await Pelicula.findAll();
@@ -84,6 +86,7 @@ exports.getAllPeliculas = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
 
 // Actualizar una película existente
 exports.updatePelicula = async (req, res) => {
