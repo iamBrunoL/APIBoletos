@@ -20,7 +20,23 @@ const storage = multer.diskStorage({
     }
 });
 
-const upload = multer({ storage: storage });
+// Filtro para aceptar solo imágenes
+const fileFilter = (req, file, cb) => {
+    const filetypes = /jpeg|jpg|png|gif/;
+    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = filetypes.test(file.mimetype);
+
+    if (extname && mimetype) {
+        return cb(null, true);
+    } else {
+        cb(new Error('Solo se permiten imágenes (formatos: .jpeg, .jpg, .png, .gif)'));
+    }
+};
+
+const upload = multer({ 
+    storage: storage, 
+    fileFilter: fileFilter 
+});
 
 // Crear una nueva película
 exports.createPelicula = [
@@ -73,6 +89,7 @@ exports.createPelicula = [
         }
     }
 ];
+
 
 exports.getAllPeliculas = async (req, res) => {
     try {
