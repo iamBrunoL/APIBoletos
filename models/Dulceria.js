@@ -14,7 +14,7 @@ const Dulceria = sequelize.define('Dulceria', {
     precioProducto: {
         type: DataTypes.INTEGER,
         allowNull: false,
-    },
+    }
 }, {
     tableName: 'dulceria',
     timestamps: false,

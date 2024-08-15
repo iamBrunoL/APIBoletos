@@ -4,6 +4,13 @@ const Horario = require('../models/Horario');
 const Sala = require('../models/Sala');
 const registrarLog = require('../middleware/logs');
 
+// Función para obtener el nombre del día
+const obtenerNombreDia = (fecha) => {
+    const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const fechaObj = new Date(fecha);
+    return diasSemana[fechaObj.getUTCDay()];
+};
+
 // Crear una nueva entrada en la cartelera
 exports.createCartelera = async (req, res) => {
     const { idPelicula, idHorario, idSala } = req.body;
@@ -21,10 +28,22 @@ exports.createCartelera = async (req, res) => {
     }
 
     try {
+        // Obtener el horario para la fecha de emisión
+        const horario = await Horario.findByPk(idHorario);
+        if (!horario) {
+            const errorMsg = 'El horario proporcionado no existe.';
+            registrarLog('createCartelera - error', req, { error: errorMsg });
+            return res.status(404).json({ error: errorMsg });
+        }
+
+        // Obtener el nombre del día a partir de la fecha de emisión
+        const nombreDia = obtenerNombreDia(horario.fechaDeEmision);
+
         const nuevaCartelera = await Cartelera.create({
             idPelicula,
             idHorario,
-            idSala
+            idSala,
+            nombreDia
         });
 
         registrarLog('createCartelera - éxito', req, { cartelera: nuevaCartelera });

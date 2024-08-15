@@ -33,10 +33,19 @@ const Cartelera = sequelize.define('Cartelera', {
             model: Sala,
             key: 'idSala'
         }
-    }
+    },
+    nombreDia: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      }
 }, {
     tableName: 'cartelera',
     timestamps: false
 });
+
+
+Cartelera.belongsTo(Pelicula, { foreignKey: 'idPelicula' });
+Cartelera.belongsTo(Horario, { foreignKey: 'idHorario' });
+Cartelera.belongsTo(Sala, { foreignKey: 'idSala' });
 
 module.exports = Cartelera;
