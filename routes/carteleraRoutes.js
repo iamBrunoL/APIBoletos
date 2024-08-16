@@ -10,7 +10,7 @@ router.post('/', verifyToken, checkRole(['admin']), carteleraController.createCa
 router.get('/carteleraDia', verifyToken, checkRole(['admin','cliente']), carteleraController.getCarteleraPorDia);
 
 // Obtener todas las entradas en la cartelera
-router.get('/', verifyToken, checkRole(['admin']), carteleraController.getAllCarteleras);
+router.get('/', verifyToken, checkRole(['admin','cliente']), carteleraController.getAllCarteleras);
 
 // Eliminar una entrada en la cartelera
 router.delete('/:idCartelera', verifyToken, checkRole(['admin']), carteleraController.deleteCartelera);
