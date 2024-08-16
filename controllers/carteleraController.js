@@ -4,25 +4,18 @@ const Horario = require('../models/Horario');
 const Sala = require('../models/Sala');
 const registrarLog = require('../middleware/logs');
 
-// Función para obtener el nombre del día
-const obtenerNombreDia = (fecha) => {
-    const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-    const fechaObj = new Date(fecha);
-    return diasSemana[fechaObj.getUTCDay()];
-};
-
-// Crear una nueva entrada en la cartelera
+// Crear una nueva entrada en la cartelera para múltiples días
 exports.createCartelera = async (req, res) => {
-    const { idPelicula, idHorario, idSala } = req.body;
+    const { idPelicula, idHorario, idSala, dias } = req.body;
 
     if (!req.headers) {
         return res.status(500).json({ error: 'No se puede registrar el log. Encabezados no disponibles.' });
     }
 
-    registrarLog('createCartelera - datos recibidos', req, { idPelicula, idHorario, idSala });
+    registrarLog('createCartelera - datos recibidos', req, { idPelicula, idHorario, idSala, dias });
 
-    if (!idPelicula || !idHorario || !idSala) {
-        const errorMsg = 'Todos los campos son obligatorios.';
+    if (!idPelicula || !idHorario || !idSala || !dias || dias.length === 0) {
+        const errorMsg = 'Todos los campos son obligatorios, incluidos los días.';
         registrarLog('createCartelera - error', req, { error: errorMsg });
         return res.status(400).json({ error: errorMsg });
     }
@@ -36,21 +29,22 @@ exports.createCartelera = async (req, res) => {
             return res.status(404).json({ error: errorMsg });
         }
 
-        // Obtener el nombre del día a partir de la fecha de emisión
-        const nombreDia = obtenerNombreDia(horario.fechaDeEmision);
+        const nuevasCarteleras = [];
+        for (const dia of dias) {
+            const nuevaCartelera = await Cartelera.create({
+                idPelicula,
+                idHorario,
+                idSala,
+                nombreDia: dia
+            });
+            nuevasCarteleras.push(nuevaCartelera);
+        }
 
-        const nuevaCartelera = await Cartelera.create({
-            idPelicula,
-            idHorario,
-            idSala,
-            nombreDia
-        });
-
-        registrarLog('createCartelera - éxito', req, { cartelera: nuevaCartelera });
-        res.status(201).json(nuevaCartelera);
+        registrarLog('createCartelera - éxito', req, { carteleras: nuevasCarteleras });
+        res.status(201).json(nuevasCarteleras);
     } catch (error) {
         registrarLog('createCartelera - error', req, { error: error.message, stack: error.stack });
-        res.status(500).json({ error: 'Ocurrió un error al crear la entrada en la cartelera.' });
+        res.status(500).json({ error: 'Ocurrió un error al crear las entradas en la cartelera.' });
     }
 };
 

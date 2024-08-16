@@ -10,10 +10,6 @@ const Horario = sequelize.define('Horario', {
   horaProgramada: {
     type: DataTypes.TIME,
     allowNull: false
-  },
-  fechaDeEmision: {
-    type: DataTypes.DATE,
-    allowNull: false
   }
 }, {
   tableName: 'horarios',

@@ -36,7 +36,6 @@ exports.createBoleto = async (req, res) => {
         }
 
         const horaProgramada = horario.horaProgramada;
-        const fechaDeEmision = horario.fechaDeEmision;
         const turno = horario.turno;
 
         // Verificar la disponibilidad de los asientos
@@ -129,7 +128,6 @@ exports.createBoleto = async (req, res) => {
                 numeroAsientoReservado: asiento.numeroAsiento,
                 filaAsiento: asiento.filaAsiento,
                 fechaReserva: boleto.fechaReserva,
-                fechaDeEmision: fechaDeEmision,
                 turno: turno
             });
         }
@@ -149,7 +147,6 @@ exports.createBoleto = async (req, res) => {
             Fecha de compra: ${fechaReserva.toISOString().split('T')[0]}.
             Usuario: ${nombreUsuario}.
             Pelicula: ${nombrePelicula}.
-            Fecha de emision: ${fechaDeEmision}.
             Hora de emision: ${horaProgramada}.
             Turno: ${turno}.
             Sala: ${nombreSala}.

@@ -6,18 +6,12 @@ const registrarLog = require('../middleware/logs'); // Asegúrate de que la ruta
 
 // Crear un nuevo horario
 exports.createHorario = async (req, res) => {
-    const { horaProgramada, fechaDeEmision } = req.body;
+    const { horaProgramada } = req.body;
     const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
 
     // Validación de datos
     if (!horaProgramada) {
         const errorMessage = 'La hora programada es requerida';
-        const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
-        registrarLog(req, 'createHorario', { errorMessage, userAgent }, 'warn');
-        return res.status(400).json({ message: errorMessage });
-    }
-    if (!fechaDeEmision) {
-        const errorMessage = 'La fecha de emisión es requerida';
         const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
         registrarLog(req, 'createHorario', { errorMessage, userAgent }, 'warn');
         return res.status(400).json({ message: errorMessage });
@@ -31,20 +25,10 @@ exports.createHorario = async (req, res) => {
         return res.status(400).json({ message: errorMessage });
     }
 
-    // Validar el formato de fechaDeEmision
-    const formattedDate = new Date(fechaDeEmision);
-    if (isNaN(formattedDate.getTime())) {
-        const errorMessage = 'Formato de fecha no válido';
-        const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
-        registrarLog(req, 'createHorario', { errorMessage, userAgent }, 'warn');
-        return res.status(400).json({ message: errorMessage });
-    }
-
 
     try {
         const horario = await Horario.create({
-            horaProgramada,
-            fechaDeEmision
+            horaProgramada
         });
         const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
         registrarLog(req, 'createHorario', { message: 'Horario creado exitosamente', horario, userAgent }, 'info');
@@ -78,22 +62,10 @@ exports.getHorarios = async (req, res) => {
     const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
 
     try {
-        const { idHorario, fechaDeEmision, horaProgramada } = req.query;
+        const { idHorario, horaProgramada } = req.query;
         const searchCriteria = {};
 
         if (idHorario) searchCriteria.idHorario = idHorario;
-
-        if (fechaDeEmision) {
-            const formattedDate = new Date(fechaDeEmision);
-            if (isNaN(formattedDate.getTime())) {
-                const errorMessage = 'Formato de fecha no válido';
-                registrarLog('Formato de fecha no válido', req, userAgent, 'error');
-                return res.status(400).json({ message: errorMessage });
-            }
-            searchCriteria.fechaDeEmision = {
-                [Op.eq]: formattedDate.toISOString().split('T')[0]
-            };
-        }
 
         if (horaProgramada) {
             const time = horaProgramada;
@@ -127,7 +99,7 @@ exports.getHorarios = async (req, res) => {
 
 // Actualizar horarios por múltiples criterios
 exports.updateHorarios = async (req, res) => {
-    const { idHorario, horaProgramada, fechaDeEmision } = req.body;
+    const { idHorario, horaProgramada } = req.body;
     const userAgent = req.headers ? req.headers['user-agent'] : 'unknown';
 
     if (!idHorario) {
@@ -142,15 +114,6 @@ exports.updateHorarios = async (req, res) => {
         return res.status(400).json({ message: errorMessage });
     }
 
-    if (fechaDeEmision) {
-        const formattedDate = new Date(fechaDeEmision);
-        if (isNaN(formattedDate.getTime())) {
-            const errorMessage = 'Formato de fecha no válido';
-            registrarLog('Formato de fecha no válido', req, userAgent, 'error');
-            return res.status(400).json({ message: errorMessage });
-        }
-    }
-
     try {
         const horario = await Horario.findByPk(idHorario);
         if (!horario) {
@@ -161,8 +124,7 @@ exports.updateHorarios = async (req, res) => {
 
         const updated = await Horario.update(
             {
-                horaProgramada: horaProgramada || horario.horaProgramada,
-                fechaDeEmision: fechaDeEmision || horario.fechaDeEmision
+                horaProgramada: horaProgramada || horario.horaProgramada
             },
             { where: { idHorario } }
         );
@@ -240,7 +202,6 @@ exports.getHorariosPDF = async (req, res) => {
         horarios.forEach(horario => {
             doc.fontSize(12).text(`ID: ${horario.idHorario}`);
             doc.fontSize(12).text(`Hora Programada: ${horario.horaProgramada}`);
-            doc.fontSize(12).text(`Fecha de Emisión: ${horario.fechaDeEmision}`);
             doc.moveDown();
         });
 
