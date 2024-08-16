@@ -5,7 +5,7 @@ const verifyToken = require('../middleware/auth');
 const checkRole = require('../middleware/roleMiddleware');
 
 // Crear una nueva entrada en la cartelera
-router.post('/', verifyToken, checkRole(['admin']), carteleraController.createCartelera);
+router.post('/', verifyToken, checkRole(['admin','cliente']), carteleraController.createCartelera);
 
 router.get('/carteleraDia', verifyToken, checkRole(['admin','cliente']), carteleraController.getCarteleraPorDia);
 
@@ -13,6 +13,6 @@ router.get('/carteleraDia', verifyToken, checkRole(['admin','cliente']), cartele
 router.get('/', verifyToken, checkRole(['admin','cliente']), carteleraController.getAllCarteleras);
 
 // Eliminar una entrada en la cartelera
-router.delete('/:idCartelera', verifyToken, checkRole(['admin']), carteleraController.deleteCartelera);
+router.delete('/:idCartelera', verifyToken, checkRole(['admin','cliente']), carteleraController.deleteCartelera);
 
 module.exports = router;

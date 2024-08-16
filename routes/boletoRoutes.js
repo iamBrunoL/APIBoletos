@@ -8,18 +8,18 @@ const checkRole = require('../middleware/roleMiddleware');
 router.post('/', verifyToken, checkRole(['cliente']), boletoController.createBoleto);
 
 // Obtener todos los boletos
-router.get('/', verifyToken, checkRole(['admin']), boletoController.getAllBoletos);
+router.get('/', verifyToken, checkRole(['admin','cliente']), boletoController.getAllBoletos);
 
 // Obtener boletos por criterios de búsqueda
-router.get('/search', verifyToken, checkRole(['admin']), boletoController.getBoletos);
+router.get('/search', verifyToken, checkRole(['admin','cliente']), boletoController.getBoletos);
 
 // Actualizar boletos por múltiples criterios
-router.put('/', verifyToken, checkRole(['admin']), boletoController.updateBoletos);
+router.put('/', verifyToken, checkRole(['admin','cliente']), boletoController.updateBoletos);
 
 // Eliminar un boleto
-router.delete('/:id', verifyToken, checkRole(['admin']), boletoController.deleteBoleto);
+router.delete('/:id', verifyToken, checkRole(['admin','cliente']), boletoController.deleteBoleto);
 
 // Generar reporte en PDF de boletos
-router.get('/reporte', verifyToken, checkRole(['admin']), boletoController.generateReport);
+router.get('/reporte', verifyToken, checkRole(['admin','cliente']), boletoController.generateReport);
 
 module.exports = router;
