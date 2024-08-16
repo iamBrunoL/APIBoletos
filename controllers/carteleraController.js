@@ -119,6 +119,6 @@ exports.getCarteleraPorDia = async (req, res) => {
         res.json(carteleras);
     } catch (error) {
         registrarLog('getCarteleraPorDia - error', req, { error: error.message });
-        res.status(500).json({ error: 'Error interno del servidor.' });
-    }
+        res.status(500).json({ error: 'Error interno del servidor.' });
+    }
 };
