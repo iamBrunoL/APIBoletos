@@ -98,3 +98,33 @@ exports.deleteCartelera = async (req, res) => {
         res.status(500).json({ message: 'Error interno del servidor', error: error.message });
     }
 };
+
+// Obtener carteleras por día de la semana
+exports.getCarteleraPorDia = async (req, res) => {
+    const { dia } = req.query;
+
+    if (!dia) {
+        return res.status(400).json({ error: 'El parámetro "dia" es obligatorio.' });
+    }
+
+    try {
+        const carteleras = await Cartelera.findAll({
+            where: { nombreDia: dia },
+            include: [
+                { model: Pelicula, attributes: ['nombrePelicula', 'imagenPelicula', 'actoresPelicula', 'duracionPelicula', 'directorPelicula', 'clasificacionPelicula', 'precioBoleto'] },
+                { model: Horario, attributes: ['horaProgramada'] },
+                { model: Sala, attributes: ['nombreSala'] }
+            ]
+        });
+
+        if (carteleras.length === 0) {
+            return res.status(404).json({ message: 'No se encontraron carteleras para el día especificado.' });
+        }
+
+        registrarLog('getCarteleraPorDia', req, { cartelerasCount: carteleras.length });
+        res.json(carteleras);
+    } catch (error) {
+        registrarLog('getCarteleraPorDia - error', req, { error: error.message });
+        res.status(500).json({ error: 'Error interno del servidor.' });
+    }
+};

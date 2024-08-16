@@ -7,6 +7,8 @@ const checkRole = require('../middleware/roleMiddleware');
 // Crear una nueva entrada en la cartelera
 router.post('/', verifyToken, checkRole(['admin']), carteleraController.createCartelera);
 
+router.post('/', verifyToken, checkRole(['admin','cliente']), carteleraController.getCarteleraPorDia);
+
 // Obtener todas las entradas en la cartelera
 router.get('/', verifyToken, checkRole(['admin']), carteleraController.getAllCarteleras);
 

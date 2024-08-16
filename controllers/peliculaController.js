@@ -104,56 +104,65 @@ exports.getAllPeliculas = async (req, res) => {
     }
 };
 
-
 // Actualizar una película existente
-exports.updatePelicula = async (req, res) => {
-    const { idPelicula } = req.params;
-    const { nombrePelicula, directorPelicula, duracionPelicula, actoresPelicula, clasificacionPelicula, precioBoleto, imagenPelicula } = req.body;
+exports.updatePelicula = [
+    upload.single('imagenPelicula'),  // Middleware de multer para manejar la subida de imágenes
+    async (req, res) => {
+        const { idPelicula } = req.params;
+        const { nombrePelicula, directorPelicula, duracionPelicula, actoresPelicula, clasificacionPelicula, precioBoleto } = req.body;
 
-    // Verificar que req.headers está definido
-    if (!req.headers) {
-        return res.status(500).json({ error: 'No se puede registrar el log. Encabezados no disponibles.' });
-    }
-
-    // Registrar la solicitud inicial
-    registrarLog('updatePelicula - datos recibidos', req, { idPelicula, nombrePelicula, directorPelicula, duracionPelicula, actoresPelicula, clasificacionPelicula, precioBoleto, imagenPelicula });
-
-    // Validar los datos requeridos
-    if (!idPelicula || !nombrePelicula || !directorPelicula || !duracionPelicula || !actoresPelicula || !clasificacionPelicula || !precioBoleto) {
-        const errorMsg = 'Todos los campos son obligatorios.';
-        registrarLog('updatePelicula - error', req, { error: errorMsg });
-        return res.status(400).json({ error: errorMsg });
-    }
-
-    try {
-        // Verificar si la película existe
-        const pelicula = await Pelicula.findByPk(idPelicula);
-        if (!pelicula) {
-            const warningMsg = 'Película no encontrada con el ID proporcionado.';
-            registrarLog('updatePelicula - advertencia', req, { warning: warningMsg });
-            return res.status(404).json({ message: warningMsg });
+        // Verificar que req.headers está definido
+        if (!req.headers) {
+            return res.status(500).json({ error: 'No se puede registrar el log. Encabezados no disponibles.' });
         }
 
-        // Actualizar la película
-        await pelicula.update({
-            nombrePelicula,
-            directorPelicula,
-            duracionPelicula,
-            actoresPelicula,
-            clasificacionPelicula,
-            precioBoleto,
-            imagenPelicula // Actualiza la columna imagenPelicula también
-        });
+        // Registrar la solicitud inicial
+        registrarLog('updatePelicula - datos recibidos', req, { idPelicula, nombrePelicula, directorPelicula, duracionPelicula, actoresPelicula, clasificacionPelicula, precioBoleto });
 
-        registrarLog('updatePelicula - éxito', req, { pelicula });
-        res.status(200).json(pelicula);
-    } catch (error) {
-        // Registrar detalles del error
-        registrarLog('updatePelicula - error', req, { error: error.message, stack: error.stack });
-        res.status(500).json({ error: 'Ocurrió un error al actualizar la película.' });
+        // Validar los datos requeridos
+        if (!idPelicula || !nombrePelicula || !directorPelicula || !duracionPelicula || !actoresPelicula || !clasificacionPelicula || !precioBoleto) {
+            const errorMsg = 'Todos los campos son obligatorios.';
+            registrarLog('updatePelicula - error', req, { error: errorMsg });
+            return res.status(400).json({ error: errorMsg });
+        }
+
+        try {
+            // Verificar si la película existe
+            const pelicula = await Pelicula.findByPk(idPelicula);
+            if (!pelicula) {
+                const warningMsg = 'Película no encontrada con el ID proporcionado.';
+                registrarLog('updatePelicula - advertencia', req, { warning: warningMsg });
+                return res.status(404).json({ message: warningMsg });
+            }
+
+            // Si se subió una nueva imagen, eliminar la imagen antigua
+            if (req.file) {
+                if (pelicula.imagenPelicula) {
+                    fs.unlinkSync(pelicula.imagenPelicula); // Elimina la imagen antigua
+                }
+                pelicula.imagenPelicula = req.file.path; // Asignar la nueva imagen
+            }
+
+            // Actualizar la película
+            await pelicula.update({
+                nombrePelicula,
+                directorPelicula,
+                duracionPelicula,
+                actoresPelicula,
+                clasificacionPelicula,
+                precioBoleto,
+                imagenPelicula: pelicula.imagenPelicula // Asegurarse de que la imagen se actualiza
+            });
+
+            registrarLog('updatePelicula - éxito', req, { pelicula });
+            res.status(200).json(pelicula);
+        } catch (error) {
+            // Registrar detalles del error
+            registrarLog('updatePelicula - error', req, { error: error.message, stack: error.stack });
+            res.status(500).json({ error: 'Ocurrió un error al actualizar la película.' });
+        }
     }
-};
-
+];
 
 // Eliminar una película
 exports.deletePelicula = async (req, res) => {
