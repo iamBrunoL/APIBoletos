@@ -115,8 +115,45 @@ exports.getCarteleraPorDia = async (req, res) => {
             return res.status(404).json({ message: 'No se encontraron carteleras para el día especificado.' });
         }
 
-        registrarLog('getCarteleraPorDia', req, { cartelerasCount: carteleras.length });
-        res.json(carteleras);
+        // Agrupar carteleras por película
+        const peliculasAgrupadas = carteleras.reduce((acc, cartelera) => {
+            const pelicula = cartelera.Pelicula;
+            const horario = cartelera.Horario;
+            const sala = cartelera.Sala;
+
+            // Asegurarse de que la película esté en el acumulador
+            if (!acc[pelicula.nombrePelicula]) {
+                acc[pelicula.nombrePelicula] = {
+                    pelicula: {
+                        nombrePelicula: pelicula.nombrePelicula,
+                        imagenPelicula: pelicula.imagenPelicula,
+                        actoresPelicula: pelicula.actoresPelicula,
+                        duracionPelicula: pelicula.duracionPelicula,
+                        directorPelicula: pelicula.directorPelicula,
+                        clasificacionPelicula: pelicula.clasificacionPelicula,
+                        precioBoleto: pelicula.precioBoleto
+                    },
+                    horarios: []
+                };
+            }
+
+            // Añadir el horario y la sala a la película correspondiente
+            acc[pelicula.nombrePelicula].horarios.push({
+                idCartelera: cartelera.idCartelera,
+                idHorario: cartelera.idHorario,
+                idSala: cartelera.idSala,
+                horaProgramada: horario.horaProgramada,
+                nombreSala: sala.nombreSala
+            });
+
+            return acc;
+        }, {});
+
+        // Convertir el objeto en un array para la respuesta
+        const resultado = Object.values(peliculasAgrupadas);
+
+        registrarLog('getCarteleraPorDia', req, { cartelerasCount: resultado.length });
+        res.json(resultado);
     } catch (error) {
         registrarLog('getCarteleraPorDia - error', req, { error: error.message });
         res.status(500).json({ error: 'Error interno del servidor.' });
