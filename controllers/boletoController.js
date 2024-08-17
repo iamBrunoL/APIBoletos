@@ -3,7 +3,7 @@ const Boleto = require('../models/Boleto');
 const Asiento = require('../models/Asiento');
 const Usuario = require('../models/Usuario');
 const Pelicula = require('../models/Pelicula');
-const Horario = require('../models/Horario');
+const Cartelera = require('../models/Cartelera');
 const Sala = require('../models/Sala');
 const jwt = require('jsonwebtoken');
 const PDFDocument = require('pdfkit');
@@ -24,19 +24,25 @@ exports.createBoleto = async (req, res) => {
             return res.status(400).json({ message: 'Película no encontrada' });
         }
 
-        const idHorario = pelicula.idHorario;
+        // Obtener el horario y sala de la cartelera
+        const cartelera = await Cartelera.findOne({ where: { idPelicula, idSala } });
+        if (!cartelera) {
+            await registrarLog('reservarAsientos', req, { message: 'Cartelera no encontrada', usuario: decodedToken.id }, 'warn');
+            return res.status(400).json({ message: 'Cartelera no encontrada' });
+        }
+
+        const idHorario = cartelera.idHorario;
         const precioBoleto = pelicula.precioBoleto;
         const nombrePelicula = pelicula.nombrePelicula;
 
         // Obtener el horario
-        const horario = await Horario.findOne({ where: { idHorario } });
+        const horario = await Cartelera.findOne({ where: { idHorario } });
         if (!horario) {
             await registrarLog('reservarAsientos', req, { message: 'Horario no encontrado', usuario: decodedToken.id }, 'warn');
             return res.status(400).json({ message: 'Horario no encontrado' });
         }
 
         const horaProgramada = horario.horaProgramada;
-        const turno = horario.turno;
 
         // Verificar la disponibilidad de los asientos
         let asientosDisponibles = [];
@@ -128,7 +134,6 @@ exports.createBoleto = async (req, res) => {
                 numeroAsientoReservado: asiento.numeroAsiento,
                 filaAsiento: asiento.filaAsiento,
                 fechaReserva: boleto.fechaReserva,
-                turno: turno
             });
         }
 
@@ -148,7 +153,6 @@ exports.createBoleto = async (req, res) => {
             Usuario: ${nombreUsuario}.
             Pelicula: ${nombrePelicula}.
             Hora de emision: ${horaProgramada}.
-            Turno: ${turno}.
             Sala: ${nombreSala}.
             Asientos reservados: ${asientosText}
         `;
