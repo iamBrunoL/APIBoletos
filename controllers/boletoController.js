@@ -42,7 +42,7 @@ exports.createBoleto = async (req, res) => {
             return res.status(400).json({ message: 'Horario no encontrado' });
         }
 
-        const horaProgramada = horario.horaProgramada;
+        const turno = horario.turno;
 
         // Verificar la disponibilidad de los asientos
         let asientosDisponibles = [];
@@ -129,7 +129,6 @@ exports.createBoleto = async (req, res) => {
                 idPago: boleto.idPago,
                 nombreUsuario: nombreUsuario,
                 nombrePelicula: nombrePelicula,
-                horaProgramada: horaProgramada,
                 nombreSala: nombreSala,
                 numeroAsientoReservado: asiento.numeroAsiento,
                 filaAsiento: asiento.filaAsiento,
@@ -152,7 +151,6 @@ exports.createBoleto = async (req, res) => {
             Fecha de compra: ${fechaReserva.toISOString().split('T')[0]}.
             Usuario: ${nombreUsuario}.
             Pelicula: ${nombrePelicula}.
-            Hora de emision: ${horaProgramada}.
             Sala: ${nombreSala}.
             Asientos reservados: ${asientosText}
         `;
