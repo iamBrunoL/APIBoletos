@@ -21,16 +21,27 @@ exports.createCartelera = async (req, res) => {
     }
 
     try {
-        // Obtener el horario para la fecha de emisión
-        const horario = await Horario.findByPk(idHorario);
-        if (!horario) {
-            const errorMsg = 'El horario proporcionado no existe.';
-            registrarLog('createCartelera - error', req, { error: errorMsg });
-            return res.status(404).json({ error: errorMsg });
-        }
-
         const nuevasCarteleras = [];
+        const errores = [];
+
         for (const dia of dias) {
+            // Verificar si ya existe una cartelera con los mismos datos
+            const existingCartelera = await Cartelera.findOne({
+                where: {
+                    idPelicula,
+                    idHorario,
+                    idSala,
+                    nombreDia: dia
+                }
+            });
+
+            if (existingCartelera) {
+                const errorMsg = `Ya existe una cartelera para la película con id ${idPelicula}, en la sala ${idSala} y horario ${idHorario} para el día ${dia}.`;
+                errores.push(errorMsg);
+                registrarLog('createCartelera - duplicado', req, { error: errorMsg });
+                continue; // Omitir la creación de este registro
+            }
+
             const nuevaCartelera = await Cartelera.create({
                 idPelicula,
                 idHorario,
@@ -40,13 +51,25 @@ exports.createCartelera = async (req, res) => {
             nuevasCarteleras.push(nuevaCartelera);
         }
 
-        registrarLog('createCartelera - éxito', req, { carteleras: nuevasCarteleras });
-        res.status(201).json(nuevasCarteleras);
+        if (nuevasCarteleras.length > 0) {
+            registrarLog('createCartelera - éxito', req, { carteleras: nuevasCarteleras });
+        }
+
+        if (errores.length > 0) {
+            res.status(207).json({
+                message: 'Algunas entradas no se crearon debido a duplicados.',
+                duplicados: errores,
+                nuevasCarteleras
+            });
+        } else {
+            res.status(201).json(nuevasCarteleras);
+        }
     } catch (error) {
         registrarLog('createCartelera - error', req, { error: error.message, stack: error.stack });
         res.status(500).json({ error: 'Ocurrió un error al crear las entradas en la cartelera.' });
     }
 };
+
 
 // Obtener todas las entradas en la cartelera
 exports.getAllCarteleras = async (req, res) => {
