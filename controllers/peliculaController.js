@@ -42,13 +42,13 @@ const upload = multer({
 exports.createPelicula = [
     upload.single('imagenPelicula'),  // Middleware de multer para una sola imagen
     async (req, res) => {
-        const { nombrePelicula, directorPelicula, duracionPelicula, actoresPelicula, clasificacionPelicula, precioBoleto } = req.body;
+        const { nombrePelicula, directorPelicula, duracionPelicula, actoresPelicula, clasificacionPelicula, descripcionPelicula, precioBoleto } = req.body;
 
         // Registrar log solo si user-agent está disponible
         const userAgent = req.headers['user-agent'] || 'unknown';
-        registrarLog('createPelicula - datos recibidos', req, { nombrePelicula, directorPelicula, duracionPelicula, actoresPelicula, clasificacionPelicula, precioBoleto, userAgent });
+        registrarLog('createPelicula - datos recibidos', req, { nombrePelicula, directorPelicula, duracionPelicula, actoresPelicula, clasificacionPelicula, descripcionPelicula, precioBoleto, userAgent });
 
-        if (!nombrePelicula || !directorPelicula || !duracionPelicula || !actoresPelicula || !clasificacionPelicula || !precioBoleto) {
+        if (!nombrePelicula || !directorPelicula || !duracionPelicula || !actoresPelicula || !clasificacionPelicula || !descripcionPelicula || !precioBoleto) {
             const errorMsg = 'Todos los campos son obligatorios.';
             registrarLog('createPelicula - error', req, { error: errorMsg });
             return res.status(400).json({ error: errorMsg });
@@ -77,6 +77,7 @@ exports.createPelicula = [
                 duracionPelicula,
                 actoresPelicula,
                 clasificacionPelicula,
+                descripcionPelicula,
                 precioBoleto,
                 imagenPelicula
             });

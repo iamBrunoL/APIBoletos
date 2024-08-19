@@ -27,6 +27,10 @@ const Pelicula = sequelize.define('Pelicula', {
     type: DataTypes.STRING,
     allowNull: false
   },
+  descripcionPelicula: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
   precioBoleto: {
     type: DataTypes.INTEGER,
     allowNull: false
